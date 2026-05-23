@@ -14,9 +14,13 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+
+// ── Sitemap ────────────────────────────────────────────────────────────────────
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 // ── Public ─────────────────────────────────────────────────────────────────────
 Route::get('/',                        [PublicController::class, 'home'])->name('public.home');
