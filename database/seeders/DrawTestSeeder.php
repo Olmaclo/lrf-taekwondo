@@ -101,6 +101,9 @@ class DrawTestSeeder extends Seeder
             ['athletes' => $cadetM55,  'age' => 'Cadet',  'gender' => 'M', 'weight' => '-55kg'],
         ];
 
+        // Unguard to allow mass-assigning protected status fields in seeder context
+        Athlete::unguard();
+
         foreach ($allGroups as $group) {
             foreach ($group['athletes'] as [$firstName, $lastName, $dob, $gender, $weight, $age, $weightCat]) {
                 Athlete::firstOrCreate(
@@ -128,6 +131,8 @@ class DrawTestSeeder extends Seeder
                 );
             }
         }
+
+        Athlete::reguard();
 
         // ── Generate draws ─────────────────────────────────────────────────────
         Auth::login($technical);
