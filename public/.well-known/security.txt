@@ -1,0 +1,5 @@
+Contact: mailto:contact@lrftaekwondo.com
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: fr, en
+Canonical: https://lrftaekwondo.com/.well-known/security.txt
+Policy: Les failles de sécurité doivent être signalées par email. Aucune action légale ne sera engagée pour les chercheurs agissant de bonne foi.

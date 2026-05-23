@@ -197,6 +197,12 @@
                 Se connecter
             </a>
         </p>
+
+        {{-- Honeypot — invisible pour les humains, rempli par les bots --}}
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" tabindex="-1">
+            <label for="website_url">Ne pas remplir</label>
+            <input type="text" id="website_url" name="website_url" autocomplete="off" tabindex="-1">
+        </div>
     </form>
 
     <p style="text-align: center; color: rgba(255,255,255,0.08); font-size: 0.65rem; margin-top: 1.5rem; letter-spacing: 0.06em;">&copy; {{ date('Y') }} Ligue de Fatick · Taekwondo</p>

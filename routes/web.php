@@ -27,7 +27,7 @@ Route::get('/evenements/{slug}/tirages', [PublicController::class, 'draws'])->na
 Route::get('/galerie',                 [PublicController::class, 'gallery'])->name('public.gallery');
 Route::get('/actualites',              [PublicController::class, 'blog'])->name('public.blog');
 Route::get('/actualites/{slug}',       [PublicController::class, 'blogPost'])->name('public.blog-post');
-Route::get('/verifier-inscription',    [PublicController::class, 'verify'])->name('public.verify');
+Route::get('/verifier-inscription',    [PublicController::class, 'verify'])->name('public.verify')->middleware('throttle:30,1');
 Route::get('/contact',                 [PublicController::class, 'contact'])->name('public.contact');
 
 // ── Inscription (coach validé uniquement) ──────────────────────────────────────

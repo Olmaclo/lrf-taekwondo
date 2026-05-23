@@ -33,6 +33,12 @@ class RegisteredUserController extends Controller
         }
         RateLimiter::hit($key, 60);
 
+        // Honeypot — si rempli, c'est un bot
+        if ($request->filled('website_url')) {
+            return redirect()->route('login')
+                ->with('success', 'Compte créé avec succès. Votre compte est en attente de validation par un administrateur.');
+        }
+
         $data = $request->validate([
             'first_name'     => ['required', 'string', 'max:100'],
             'last_name'      => ['required', 'string', 'max:100'],
