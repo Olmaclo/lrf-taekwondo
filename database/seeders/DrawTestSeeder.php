@@ -106,7 +106,7 @@ class DrawTestSeeder extends Seeder
 
         foreach ($allGroups as $group) {
             foreach ($group['athletes'] as [$firstName, $lastName, $dob, $gender, $weight, $age, $weightCat]) {
-                Athlete::firstOrCreate(
+                Athlete::updateOrCreate(
                     [
                         'first_name' => $firstName,
                         'last_name'  => $lastName,

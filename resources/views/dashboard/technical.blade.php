@@ -1459,15 +1459,19 @@ function technicalDashboard() {
         // ════════════════════════════════════════════════════════════════════
         async loadDrawsList() {
             this.drawsLoading = true;
-            const params = this.drawsEventFilter ? { event_id: this.drawsEventFilter } : {};
-            const data = await api.get('/api/draws/by-event', params);
-            this.draws = data.data ?? [];
-            this.drawsLoading = false;
+            try {
+                const params = this.drawsEventFilter ? { event_id: this.drawsEventFilter } : {};
+                const data = await api.get('/api/draws/by-event', params);
+                this.draws = data.data ?? [];
+            } catch (e) { this.draws = []; }
+            finally { this.drawsLoading = false; }
         },
         async loadDrawCategories() {
             if (!this.drawForm.event_id) { this.drawCategories = []; return; }
-            const data = await api.get('/api/athletes/categories-by-event', { event_id: this.drawForm.event_id });
-            this.drawCategories = data.data ?? [];
+            try {
+                const data = await api.get('/api/athletes/categories-by-event', { event_id: this.drawForm.event_id });
+                this.drawCategories = data.data ?? [];
+            } catch (e) { $store.toast.error('Erreur lors du chargement des catégories.'); this.drawCategories = []; }
         },
         async generateDraw() {
             this.drawGenerating = true;
@@ -1475,8 +1479,9 @@ function technicalDashboard() {
                 const [age_category, gender, weight_category] = this.drawForm.category_key.split('|');
                 const res = await api.post('/api/draws/generate', { event_id: this.drawForm.event_id, age_category, gender, weight_category });
                 if (res.success) { $store.toast.success('Tirage généré !'); this.loadDrawsList(); }
-                else { $store.toast.error(res.message ?? 'Erreur.'); }
-            } finally { this.drawGenerating = false; }
+                else { $store.toast.error(res.message ?? 'Erreur lors de la génération.'); }
+            } catch (e) { $store.toast.error('Erreur serveur lors de la génération du tirage.'); }
+            finally { this.drawGenerating = false; }
         },
         async deleteDraw(id) {
             if (!confirm('Supprimer ce tirage ?')) return;

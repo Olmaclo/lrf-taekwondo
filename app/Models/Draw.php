@@ -56,7 +56,7 @@ class Draw extends Model
     public function getWinnerAttribute(): ?array
     {
         if (!$this->matches) return null;
-        $final = collect($this->matches)->where('round', 'final')->first();
+        $final = collect($this->matches)->where('round', 1)->first();
         return $final ? ($final['winner'] ?? null) : null;
     }
 }
