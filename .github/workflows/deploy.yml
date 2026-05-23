@@ -61,6 +61,7 @@ jobs:
              php artisan route:cache && \
              php artisan view:cache && \
              php artisan migrate --force && \
+             cp -rf /home/u600930908/domains/lrftaekwondo.com/laravel/public/build /home/u600930908/domains/lrftaekwondo.com/public_html/ && \
              echo 'Deployed at \$(date)'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
