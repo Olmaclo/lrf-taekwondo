@@ -75,3 +75,22 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Seed draw test data (runs once — skipped if already seeded)
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "cd /home/u600930908/domains/lrftaekwondo.com/laravel && \
+             php artisan tinker --execute=\"exit(App\\\Models\\\Event::where('slug','championnat-test-tirages-2025')->exists() ? 0 : 1);\" 2>/dev/null; \
+             if [ \$? -ne 0 ]; then \
+               php artisan db:seed --class=DrawTestSeeder --force && \
+               echo 'Test data seeded.'; \
+             else \
+               echo 'Test data already present — skipped.'; \
+             fi"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
