@@ -153,7 +153,7 @@
 
     {{-- Stats strip --}}
     <div style="position: relative; z-index: 2; border-top: 1px solid rgba(255,255,255,0.08);">
-        <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); border-left: 1px solid rgba(255,255,255,0.08);" data-gsap="stagger">
                 @php
                     $statItems = [
@@ -181,7 +181,7 @@
     {{-- Section separator --}}
     <div style="height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent); margin-bottom: 7rem;"></div>
 
-    <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem;">
             <div style="display: flex; align-items: center; gap: 14px;">
@@ -260,7 +260,7 @@
 <section style="background: #050505; padding-top: 7rem;">
     <div style="height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05) 20%, rgba(255,255,255,0.05) 80%, transparent); margin-bottom: 5rem;"></div>
 
-    <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20" style="padding-bottom: 3rem;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem; padding-bottom: 3rem;">
         <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 2rem;">
@@ -306,7 +306,7 @@
 <section style="background: #000; padding: 7rem 0 8rem;">
     <div style="height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent); margin-bottom: 7rem;"></div>
 
-    <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;">
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem;">
             <div style="display: flex; align-items: center; gap: 14px;">
@@ -409,7 +409,7 @@
     {{-- Decorative bracket --}}
     <div style="position: absolute; top: 40px; left: 40px; width: 32px; height: 32px; border-top: 2px solid rgba(0,0,0,0.12); border-left: 2px solid rgba(0,0,0,0.12); pointer-events: none;" aria-hidden></div>
 
-    <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20" style="display: flex; flex-direction: column; gap: 3rem; position: relative;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem; display: flex; flex-direction: column; gap: 3rem; position: relative;">
         <div>
             <p style="color: rgba(0,0,0,0.38); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; margin-bottom: 1.25rem; font-family: 'Space Grotesk', sans-serif;">Rejoindre la compétition</p>
             <h2 style="font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 700; color: #000; line-height: 1.05; letter-spacing: -0.03em; font-family: 'Space Grotesk', sans-serif;">

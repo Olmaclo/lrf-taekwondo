@@ -5,7 +5,7 @@
     {{-- Hero --}}
     <div style="background: #000; padding: 4.5rem 0; position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.06);">
         <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 800px; height: 300px; background: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(245,158,11,0.08) 0%, transparent 70%); pointer-events: none;"></div>
-        <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20" style="position: relative;">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem; position: relative;">
 
             <a href="{{ route('public.event-detail', $event->slug) }}"
                style="display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.3); font-size: 0.72rem; text-decoration: none; margin-bottom: 2.5rem; transition: color 0.2s; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif;"
@@ -47,7 +47,7 @@
     </div>
     @else
     <div style="padding: 5rem 0 7rem;">
-        <div class="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;">
             @php $catNum = 0; @endphp
             @foreach($grouped as $key => $athletes)
                 @php
