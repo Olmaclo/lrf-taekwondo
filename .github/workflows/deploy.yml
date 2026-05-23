@@ -76,16 +76,13 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
 
-      - name: Seed draw test data (runs once — skipped if already seeded)
+      - name: Seed draw test data
         run: |
           ssh -i ~/.ssh/deploy_key \
             -p "$SSH_PORT" \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
-            "cd /home/u600930908/domains/lrftaekwondo.com/laravel && \
-             php -r \"require 'vendor/autoload.php'; \\\$app = require 'bootstrap/app.php'; \\\$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap(); echo App\\\Models\\\Event::where('slug','championnat-test-tirages-2025')->exists() ? 'exists' : 'missing';\" 2>/dev/null | grep -q 'exists' \
-             && echo 'Test data already present — skipped.' \
-             || (php artisan db:seed --class=DrawTestSeeder --force && echo 'Test data seeded.')"
+            "cd /home/u600930908/domains/lrftaekwondo.com/laravel && php artisan db:seed --class=DrawTestSeeder --force"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
