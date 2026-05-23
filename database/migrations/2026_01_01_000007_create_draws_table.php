@@ -15,7 +15,7 @@ return new class extends Migration
             // Category info
             $table->string('category');            // "Senior M -54kg" (display)
             $table->enum('age_category', ['Benjamin', 'Minime', 'Cadet', 'Junior', 'Senior']);
-            $table->enum('gender', ['Masculin', 'Feminin']);
+            $table->enum('gender', ['M', 'F']);
             $table->string('weight_category');     // "-54kg"
 
             // Draw data
