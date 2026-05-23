@@ -53,9 +53,14 @@
             1 => 'Finale',
             2 => 'Demi-finales',
             3 => 'Quarts de finale',
-            4 => 'Huitièmes de finale',
-            5 => 'Seizièmes de finale',
+            4 => 'Huitièmes',
+            5 => 'Seizièmes',
         ];
+        // Bracket sizing constants
+        $cardW = 204; // px — match card width
+        $connW = 20;  // px — connector arm width (left line + right arm)
+        $baseH = 90;  // px — slot height at max round (most matches)
+        $hdrH  = 36;  // px — round header height
     @endphp
 
     <div style="padding: 5rem 0 7rem;">
@@ -67,6 +72,29 @@
                 $drawNum++;
                 $genderLabel = \App\Models\Athlete::genderLabel($draw->gender, $draw->age_category ?? '');
                 $genderColor = $draw->gender === 'M' ? '#60a5fa' : '#f472b6';
+
+                // Determine winner for podium display
+                $champion = null;
+                $runnerUp = null;
+                if (!$draw->use_pools && $draw->matches) {
+                    $final = collect($draw->matches)->where('round', 1)->first();
+                    if ($final && !empty($final['winner'])) {
+                        $champion = $final['winner'];
+                        // Runner-up = the loser of the final
+                        $a1 = $final['athlete1'] ?? null;
+                        $a2 = $final['athlete2'] ?? null;
+                        if ($a1 && $a2 && !empty($final['winner_id'])) {
+                            $runnerUp = ($a1['id'] ?? null) == $final['winner_id'] ? $a2 : $a1;
+                        }
+                    }
+                }
+                if ($draw->use_pools && $draw->pools) {
+                    $poolFinals = $draw->pools['finals'] ?? [];
+                    $grandFinal = collect($poolFinals)->where('pool', 'FINALE')->first();
+                    if ($grandFinal && !empty($grandFinal['winner'])) {
+                        $champion = $grandFinal['winner'];
+                    }
+                }
             @endphp
 
             <div style="margin-bottom: 6rem;">
@@ -91,104 +119,157 @@
                     </div>
                 </div>
 
-                {{-- ─── DIRECT ELIMINATION ──────────────────────────────────── --}}
-                @if(!$draw->use_pools && $draw->matches)
-                @php
-                    $matchesByRound = collect($draw->matches)
-                        ->filter(fn($m) => !($m['is_bye'] ?? false) || ($m['athlete1'] && $m['athlete2']))
-                        ->groupBy('round')
-                        ->sortKeysDesc();
-                    $maxRound = $matchesByRound->keys()->first();
-                @endphp
-
-                <div style="overflow-x: auto; padding-bottom: 1rem;">
-                    <div style="display: flex; gap: 0; min-width: max-content;">
-
-                        @foreach($matchesByRound as $round => $roundMatches)
-                        @php
-                            $isLast = $round == 1;
-                            $roundLabel = $roundLabels[$round] ?? ($round == $maxRound && $maxRound > 4 ? 'Premier tour' : "Tour $round");
-                        @endphp
-
-                        <div style="min-width: 220px; {{ !$isLast ? 'border-right: 1px solid rgba(255,255,255,0.06);' : '' }} padding: 0 {{ $isLast ? '0' : '1.5rem' }} 0 0; margin-right: {{ $isLast ? '0' : '0' }};">
-                            {{-- Round label --}}
-                            <div style="text-align: center; padding: 8px 12px; margin-bottom: 1rem; background: rgba(245,158,11,{{ $round == 1 ? '0.12' : '0.04' }}); border-bottom: 1px solid rgba(245,158,11,{{ $round == 1 ? '0.3' : '0.12' }});">
-                                <span style="font-size: 0.6rem; font-weight: 700; color: {{ $round == 1 ? '#f59e0b' : 'rgba(255,255,255,0.35)' }}; text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Space Grotesk', sans-serif;">
-                                    {{ $roundLabel }}
-                                </span>
-                            </div>
-
-                            {{-- Matches --}}
-                            <div style="display: flex; flex-direction: column; gap: 0.75rem; padding: 0 1.5rem;">
-                                @foreach($roundMatches as $match)
-                                @php
-                                    $a1 = $match['athlete1'] ?? null;
-                                    $a2 = $match['athlete2'] ?? null;
-                                    $winnerId = $match['winner_id'] ?? null;
-                                    $a1IsWinner = $winnerId && $a1 && ($a1['id'] ?? null) == $winnerId;
-                                    $a2IsWinner = $winnerId && $a2 && ($a2['id'] ?? null) == $winnerId;
-                                    $isPlaceholder1 = !empty($a1['placeholder']);
-                                    $isPlaceholder2 = !empty($a2['placeholder']);
-                                @endphp
-                                <div style="border: 1px solid rgba(255,255,255,{{ $winnerId ? '0.12' : '0.07' }}); background: #080808; overflow: hidden; {{ $round == 1 ? 'border-color: rgba(245,158,11,0.2);' : '' }}">
-                                    {{-- Athlete 1 --}}
-                                    <div style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; background: {{ $a1IsWinner ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                        @if($a1IsWinner)
-                                        <svg style="width: 10px; height: 10px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        @else
-                                        <div style="width: 10px; flex-shrink: 0;"></div>
-                                        @endif
-                                        <div style="min-width: 0; flex: 1;">
-                                            @if($a1)
-                                                <div style="font-size: 0.82rem; font-weight: {{ $a1IsWinner ? '700' : '500' }}; color: {{ $a1IsWinner ? '#f59e0b' : ($isPlaceholder1 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                    {{ $a1['name'] }}
-                                                </div>
-                                                @if(!$isPlaceholder1 && !empty($a1['club']))
-                                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.25); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">{{ $a1['club'] }}</div>
-                                                @endif
-                                            @else
-                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    {{-- Athlete 2 --}}
-                                    <div style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; background: {{ $a2IsWinner ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                        @if($a2IsWinner)
-                                        <svg style="width: 10px; height: 10px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        @else
-                                        <div style="width: 10px; flex-shrink: 0;"></div>
-                                        @endif
-                                        <div style="min-width: 0; flex: 1;">
-                                            @if($a2)
-                                                <div style="font-size: 0.82rem; font-weight: {{ $a2IsWinner ? '700' : '500' }}; color: {{ $a2IsWinner ? '#f59e0b' : ($isPlaceholder2 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                    {{ $a2['name'] }}
-                                                </div>
-                                                @if(!$isPlaceholder2 && !empty($a2['club']))
-                                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.25); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">{{ $a2['club'] }}</div>
-                                                @endif
-                                            @else
-                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endforeach
-
+                {{-- ── Champion podium ──────────────────────────────────── --}}
+                @if($champion)
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); margin-bottom: 2rem;">
+                    <svg style="width: 22px; height: 22px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3h14l2 7H3L5 3zm7 18a6 6 0 006-6H6a6 6 0 006 6zM3 10h18v1H3v-1z"/><path d="M12 21c-2.76 0-5-2.24-5-5h10c0 2.76-2.24 5-5 5z"/><path fill-rule="evenodd" d="M11 13h2v2h-2v-2z" clip-rule="evenodd"/></svg>
+                    <div>
+                        <div style="font-size: 0.55rem; font-weight: 700; color: rgba(245,158,11,0.6); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 2px;">Champion</div>
+                        <div style="font-size: 1rem; font-weight: 700; color: #f59e0b; font-family: 'Space Grotesk', sans-serif;">{{ $champion['name'] ?? '' }}</div>
+                        @if(!empty($champion['club']))<div style="font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 1px;">{{ $champion['club'] }}</div>@endif
                     </div>
+                    @if($runnerUp)
+                    <div style="margin-left: 2rem; padding-left: 2rem; border-left: 1px solid rgba(255,255,255,0.07);">
+                        <div style="font-size: 0.55rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 2px;">Finaliste</div>
+                        <div style="font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.6);">{{ $runnerUp['name'] ?? '' }}</div>
+                        @if(!empty($runnerUp['club']))<div style="font-size: 0.7rem; color: rgba(255,255,255,0.25); margin-top: 1px;">{{ $runnerUp['club'] }}</div>@endif
+                    </div>
+                    @endif
                 </div>
                 @endif
 
-                {{-- ─── POOL ELIMINATION ────────────────────────────────────── --}}
-                @if($draw->use_pools && $draw->pools)
+                {{-- ─── DIRECT ELIMINATION BRACKET ─────────────────────── --}}
+                @if(!$draw->use_pools && $draw->matches)
                 @php
-                    $pools   = $draw->pools['pools']  ?? [];
-                    $finals  = $draw->pools['finals'] ?? [];
+                    $allMatches     = collect($draw->matches);
+                    $matchesByRound = $allMatches
+                        ->filter(fn($m) => !($m['is_bye'] ?? false) || ($m['athlete1'] && $m['athlete2']))
+                        ->groupBy('round')
+                        ->sortKeysDesc(); // highest round first (most matches)
+
+                    $maxRound   = $matchesByRound->keys()->max();
+                    $roundKeys  = $matchesByRound->keys()->values()->toArray();
+                    $totalRounds = count($roundKeys);
                 @endphp
 
-                {{-- Pools --}}
+                <div style="overflow-x: auto; padding-bottom: 1.5rem; -webkit-overflow-scrolling: touch;">
+                <div style="display: inline-flex; align-items: flex-start; min-width: max-content;">
+
+                @foreach($matchesByRound as $round => $roundMatches)
+                @php
+                    $loopIdx   = array_search($round, $roundKeys);
+                    $isFirst   = $loopIdx === 0;            // first column = most matches
+                    $isLast    = $round === 1;              // final
+                    $slotH     = (int) round($baseH * pow(2, $maxRound - $round));
+                    $matchesArr = $roundMatches->sortBy('position')->values();
+                    $roundLabel = $roundLabels[$round] ?? ($round === $maxRound && $maxRound > count($roundLabels) ? 'Premier tour' : "Tour $round");
+                @endphp
+
+                {{-- Round column --}}
+                <div style="display: flex; flex-direction: column; flex-shrink: 0;">
+
+                    {{-- Round header --}}
+                    <div style="width: {{ $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW) }}px; height: {{ $hdrH }}px; display: flex; align-items: center; justify-content: center; background: rgba(245,158,11,{{ $isLast ? '0.1' : '0.04' }}); border-bottom: 1px solid rgba(245,158,11,{{ $isLast ? '0.3' : '0.1' }});">
+                        <span style="font-size: 0.58rem; font-weight: 700; color: {{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.35)' }}; text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Space Grotesk', sans-serif;">{{ $roundLabel }}</span>
+                    </div>
+
+                    {{-- Match slots --}}
+                    @foreach($matchesArr as $match)
+                    @php
+                        $a1  = $match['athlete1'] ?? null;
+                        $a2  = $match['athlete2'] ?? null;
+                        $wid = $match['winner_id'] ?? null;
+                        $a1w = $wid && $a1 && isset($a1['id']) && (int)$a1['id'] === (int)$wid;
+                        $a2w = $wid && $a2 && isset($a2['id']) && (int)$a2['id'] === (int)$wid;
+                        $ph1 = !empty($a1['placeholder']);
+                        $ph2 = !empty($a2['placeholder']);
+                        $pos = (int)($match['position'] ?? 1);
+                        $isTopOfPair = ($pos % 2 !== 0); // odd = top of its pair
+
+                        // Total slot width: left connector (for non-first cols) + card + right arm (for non-final)
+                        $slotW = $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW);
+                    @endphp
+
+                    <div style="height: {{ $slotH }}px; width: {{ $slotW }}px; position: relative; display: flex; align-items: center;">
+
+                        {{-- Left horizontal connector line (all rounds except the first column) --}}
+                        @if(!$isFirst)
+                        <div style="width: {{ $connW }}px; height: 1px; background: rgba(245,158,11,0.28); flex-shrink: 0;"></div>
+                        @endif
+
+                        {{-- Match card --}}
+                        <div style="width: {{ $cardW }}px; flex-shrink: 0; border: 1px solid rgba(255,255,255,{{ $wid ? '0.13' : '0.07' }}); background: #080808; overflow: hidden; {{ $isLast ? 'border-color: rgba(245,158,11,0.22);' : '' }}">
+                            {{-- Athlete 1 --}}
+                            <div style="padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 8px; background: {{ $a1w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
+                                @if($a1w)
+                                <svg style="width: 9px; height: 9px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                @else
+                                <div style="width: 9px; flex-shrink: 0;"></div>
+                                @endif
+                                <div style="min-width: 0; flex: 1;">
+                                    @if($a1)
+                                        <div style="font-size: 0.8rem; font-weight: {{ $a1w ? '700' : '500' }}; color: {{ $a1w ? '#f59e0b' : ($ph1 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['name'] ?? '' }}</div>
+                                        @if(!$ph1 && !empty($a1['club']))<div style="font-size: 0.6rem; color: rgba(255,255,255,0.25); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['club'] }}</div>@endif
+                                    @else
+                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
+                                    @endif
+                                </div>
+                            </div>
+                            {{-- Athlete 2 --}}
+                            <div style="padding: 9px 12px; display: flex; align-items: center; gap: 8px; background: {{ $a2w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
+                                @if($a2w)
+                                <svg style="width: 9px; height: 9px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                @else
+                                <div style="width: 9px; flex-shrink: 0;"></div>
+                                @endif
+                                <div style="min-width: 0; flex: 1;">
+                                    @if($a2)
+                                        <div style="font-size: 0.8rem; font-weight: {{ $a2w ? '700' : '500' }}; color: {{ $a2w ? '#f59e0b' : ($ph2 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['name'] ?? '' }}</div>
+                                        @if(!$ph2 && !empty($a2['club']))<div style="font-size: 0.6rem; color: rgba(255,255,255,0.25); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['club'] }}</div>@endif
+                                    @else
+                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Right bracket connector arm --}}
+                        {{-- Top of pair: vertical line from center DOWN to bottom, then horizontal to the right --}}
+                        {{-- Bottom of pair: vertical line from top UP to center, then horizontal to the right --}}
+                        @if(!$isLast)
+                        <div style="
+                            position: absolute;
+                            right: 0;
+                            width: {{ $connW }}px;
+                            {{ $isTopOfPair
+                                ? 'top: 50%; height: 50%; border-top: 1px solid rgba(245,158,11,0.3); border-right: 1px solid rgba(245,158,11,0.3);'
+                                : 'top: 0; height: 50%; border-bottom: 1px solid rgba(245,158,11,0.3); border-right: 1px solid rgba(245,158,11,0.3);'
+                            }}
+                        "></div>
+                        @endif
+
+                    </div>
+                    @endforeach
+
+                </div>
+                {{-- end round column --}}
+
+                @endforeach
+                {{-- end rounds loop --}}
+
+                </div>
+                </div>
+                {{-- end bracket --}}
+                @endif
+
+                {{-- ─── POOL ELIMINATION ────────────────────────────────── --}}
+                @if($draw->use_pools && $draw->pools)
+                @php
+                    $pools  = $draw->pools['pools']  ?? [];
+                    $finals = $draw->pools['finals'] ?? [];
+                @endphp
+
+                {{-- Pool cards --}}
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
                     @foreach($pools as $pool)
                     @php
@@ -202,20 +283,18 @@
                         arsort($poolWins);
                     @endphp
                     <div style="border: 1px solid rgba(255,255,255,0.08); background: #080808; overflow: hidden;">
-                        {{-- Pool name --}}
                         <div style="padding: 12px 16px; background: rgba(245,158,11,0.05); border-bottom: 1px solid rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: space-between;">
                             <span style="font-size: 0.65rem; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Space Grotesk', sans-serif;">{{ $pool['name'] }}</span>
                             <span style="font-size: 0.6rem; color: rgba(255,255,255,0.25); letter-spacing: 0.1em;">{{ count($pool['athletes']) }} athlètes</span>
                         </div>
 
-                        {{-- Athletes standings --}}
+                        {{-- Standings --}}
                         <div>
                             @foreach(array_keys($poolWins) as $rank => $athleteId)
                             @php
-                                $athlete = collect($pool['athletes'])->firstWhere('id', $athleteId);
-                                $wins    = $poolWins[$athleteId];
-                                $total   = count($pool['matches']) > 0 ? count(array_filter($pool['matches'], fn($m) => !empty($m['winner_id']))) : 0;
-                                $isFirst = $rank === 0;
+                                $athlete  = collect($pool['athletes'])->firstWhere('id', $athleteId);
+                                $wins     = $poolWins[$athleteId];
+                                $isFirst  = $rank === 0;
                                 $isSecond = $rank === 1;
                             @endphp
                             @if($athlete)
@@ -224,16 +303,10 @@
                                     {{ $rank + 1 }}
                                 </div>
                                 <div style="flex: 1; min-width: 0;">
-                                    <div style="font-size: 0.82rem; font-weight: {{ $isFirst && $wins > 0 ? '700' : '500' }}; color: {{ $isFirst && $wins > 0 ? '#fff' : 'rgba(255,255,255,0.7)' }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        {{ $athlete['name'] }}
-                                    </div>
-                                    @if(!empty($athlete['club']))
-                                    <div style="font-size: 0.62rem; color: rgba(255,255,255,0.25); margin-top: 1px;">{{ $athlete['club'] }}</div>
-                                    @endif
+                                    <div style="font-size: 0.82rem; font-weight: {{ $isFirst && $wins > 0 ? '700' : '500' }}; color: {{ $isFirst && $wins > 0 ? '#fff' : 'rgba(255,255,255,0.7)' }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $athlete['name'] }}</div>
+                                    @if(!empty($athlete['club']))<div style="font-size: 0.62rem; color: rgba(255,255,255,0.25); margin-top: 1px;">{{ $athlete['club'] }}</div>@endif
                                 </div>
-                                <div style="font-size: 0.75rem; font-weight: 700; color: {{ $wins > 0 ? '#f59e0b' : 'rgba(255,255,255,0.2)' }}; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif;">
-                                    {{ $wins }}V
-                                </div>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: {{ $wins > 0 ? '#f59e0b' : 'rgba(255,255,255,0.2)' }}; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif;">{{ $wins }}V</div>
                             </div>
                             @endif
                             @endforeach
@@ -244,19 +317,15 @@
                             <div style="font-size: 0.58rem; font-weight: 700; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 10px;">Matchs</div>
                             @foreach($pool['matches'] as $mi => $match)
                             @php
-                                $a1 = $match['athlete1'] ?? null;
-                                $a2 = $match['athlete2'] ?? null;
+                                $a1  = $match['athlete1'] ?? null;
+                                $a2  = $match['athlete2'] ?? null;
                                 $wid = $match['winner_id'] ?? null;
                             @endphp
                             <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; {{ $mi < count($pool['matches']) - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.03);' : '' }}">
                                 <span style="font-size: 0.6rem; color: rgba(255,255,255,0.18); width: 18px; flex-shrink: 0;">M{{ $mi + 1 }}</span>
-                                <span style="font-size: 0.78rem; font-weight: {{ $wid && $a1 && ($a1['id'] ?? null) == $wid ? '700' : '400' }}; color: {{ $wid && $a1 && ($a1['id'] ?? null) == $wid ? '#f59e0b' : 'rgba(255,255,255,0.55)' }}; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    {{ $a1['name'] ?? '—' }}
-                                </span>
+                                <span style="font-size: 0.78rem; font-weight: {{ $wid && $a1 && ($a1['id'] ?? null) == $wid ? '700' : '400' }}; color: {{ $wid && $a1 && ($a1['id'] ?? null) == $wid ? '#f59e0b' : 'rgba(255,255,255,0.55)' }}; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['name'] ?? '—' }}</span>
                                 <span style="font-size: 0.55rem; font-weight: 700; color: rgba(255,255,255,0.2); flex-shrink: 0; letter-spacing: 0.1em;">VS</span>
-                                <span style="font-size: 0.78rem; font-weight: {{ $wid && $a2 && ($a2['id'] ?? null) == $wid ? '700' : '400' }}; color: {{ $wid && $a2 && ($a2['id'] ?? null) == $wid ? '#f59e0b' : 'rgba(255,255,255,0.55)' }}; flex: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    {{ $a2['name'] ?? '—' }}
-                                </span>
+                                <span style="font-size: 0.78rem; font-weight: {{ $wid && $a2 && ($a2['id'] ?? null) == $wid ? '700' : '400' }}; color: {{ $wid && $a2 && ($a2['id'] ?? null) == $wid ? '#f59e0b' : 'rgba(255,255,255,0.55)' }}; flex: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['name'] ?? '—' }}</span>
                             </div>
                             @endforeach
                         </div>
@@ -264,41 +333,33 @@
                     @endforeach
                 </div>
 
-                {{-- Finals --}}
+                {{-- Phase finale --}}
                 @if(count($finals))
                 <div style="border-top: 1px solid rgba(255,255,255,0.07); padding-top: 2rem;">
                     <div style="font-size: 0.6rem; font-weight: 700; color: rgba(245,158,11,0.5); text-transform: uppercase; letter-spacing: 0.22em; font-family: 'Space Grotesk', sans-serif; margin-bottom: 1.5rem;">Phase finale</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
-                        @php
-                            $finalsByPhase = collect($finals)->groupBy('pool');
-                        @endphp
+                        @php $finalsByPhase = collect($finals)->groupBy('pool'); @endphp
                         @foreach($finalsByPhase as $phase => $phaseMatches)
                         <div style="flex: 1; min-width: 240px; max-width: 340px;">
-                            <div style="font-size: 0.58rem; font-weight: 700; color: {{ $phase === 'FINALE' ? '#f59e0b' : 'rgba(255,255,255,0.3)' }}; text-transform: uppercase; letter-spacing: 0.18em; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(245,158,11,{{ $phase === 'FINALE' ? '0.2' : '0.08' }});">
-                                {{ $phase }}
-                            </div>
+                            <div style="font-size: 0.58rem; font-weight: 700; color: {{ $phase === 'FINALE' ? '#f59e0b' : 'rgba(255,255,255,0.3)' }}; text-transform: uppercase; letter-spacing: 0.18em; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(245,158,11,{{ $phase === 'FINALE' ? '0.2' : '0.08' }});">{{ $phase }}</div>
                             @foreach($phaseMatches as $match)
                             @php
-                                $a1 = $match['athlete1'] ?? null;
-                                $a2 = $match['athlete2'] ?? null;
+                                $a1  = $match['athlete1'] ?? null;
+                                $a2  = $match['athlete2'] ?? null;
                                 $wid = $match['winner_id'] ?? null;
-                                $isPlaceholder1 = !empty($a1['placeholder']);
-                                $isPlaceholder2 = !empty($a2['placeholder']);
-                                $a1IsWinner = $wid && $a1 && !$isPlaceholder1 && ($a1['id'] ?? null) == $wid;
-                                $a2IsWinner = $wid && $a2 && !$isPlaceholder2 && ($a2['id'] ?? null) == $wid;
+                                $ph1 = !empty($a1['placeholder']);
+                                $ph2 = !empty($a2['placeholder']);
+                                $a1w = $wid && $a1 && !$ph1 && ($a1['id'] ?? null) == $wid;
+                                $a2w = $wid && $a2 && !$ph2 && ($a2['id'] ?? null) == $wid;
                             @endphp
-                            <div style="border: 1px solid rgba(255,255,255,{{ $phase === 'FINALE' ? '0.15' : '0.07' }}); background: #080808; overflow: hidden; {{ $phase === 'FINALE' ? 'border-color: rgba(245,158,11,0.2);' : '' }}">
-                                <div style="padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 8px; background: {{ $a1IsWinner ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                    @if($a1IsWinner)<svg style="width: 10px; height: 10px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@else<div style="width:10px;flex-shrink:0;"></div>@endif
-                                    <span style="font-size: 0.82rem; font-weight: {{ $a1IsWinner ? '700' : '400' }}; color: {{ $a1IsWinner ? '#f59e0b' : ($isPlaceholder1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)') }};">
-                                        {{ $a1['name'] ?? '—' }}
-                                    </span>
+                            <div style="border: 1px solid rgba(255,255,255,{{ $phase === 'FINALE' ? '0.15' : '0.07' }}); background: #080808; overflow: hidden; margin-bottom: 0.5rem; {{ $phase === 'FINALE' ? 'border-color: rgba(245,158,11,0.2);' : '' }}">
+                                <div style="padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 8px; background: {{ $a1w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
+                                    @if($a1w)<svg style="width:10px;height:10px;color:#f59e0b;flex-shrink:0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@else<div style="width:10px;flex-shrink:0"></div>@endif
+                                    <span style="font-size: 0.82rem; font-weight: {{ $a1w ? '700' : '400' }}; color: {{ $a1w ? '#f59e0b' : ($ph1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)') }};">{{ $a1['name'] ?? '—' }}</span>
                                 </div>
-                                <div style="padding: 9px 14px; display: flex; align-items: center; gap: 8px; background: {{ $a2IsWinner ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                    @if($a2IsWinner)<svg style="width: 10px; height: 10px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@else<div style="width:10px;flex-shrink:0;"></div>@endif
-                                    <span style="font-size: 0.82rem; font-weight: {{ $a2IsWinner ? '700' : '400' }}; color: {{ $a2IsWinner ? '#f59e0b' : ($isPlaceholder2 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)') }};">
-                                        {{ $a2['name'] ?? '—' }}
-                                    </span>
+                                <div style="padding: 9px 14px; display: flex; align-items: center; gap: 8px; background: {{ $a2w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
+                                    @if($a2w)<svg style="width:10px;height:10px;color:#f59e0b;flex-shrink:0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@else<div style="width:10px;flex-shrink:0"></div>@endif
+                                    <span style="font-size: 0.82rem; font-weight: {{ $a2w ? '700' : '400' }}; color: {{ $a2w ? '#f59e0b' : ($ph2 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)') }};">{{ $a2['name'] ?? '—' }}</span>
                                 </div>
                             </div>
                             @endforeach
@@ -312,7 +373,6 @@
                 {{-- end pool --}}
 
             </div>
-            {{-- end draw loop --}}
             @endforeach
 
         </div>
