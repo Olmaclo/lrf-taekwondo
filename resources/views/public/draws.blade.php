@@ -56,11 +56,6 @@
             4 => 'Huitièmes',
             5 => 'Seizièmes',
         ];
-        // Bracket sizing constants
-        $cardW = 204; // px — match card width
-        $connW = 20;  // px — connector arm width (left line + right arm)
-        $baseH = 90;  // px — slot height at max round (most matches)
-        $hdrH  = 36;  // px — round header height
     @endphp
 
     <div style="padding: 5rem 0 7rem;">
@@ -141,36 +136,48 @@
                 {{-- ─── DIRECT ELIMINATION BRACKET ─────────────────────── --}}
                 @if(!$draw->use_pools && $draw->matches)
                 @php
+                    // Show all matches except phantom (both athletes null)
                     $allMatches     = collect($draw->matches);
                     $matchesByRound = $allMatches
-                        ->filter(fn($m) => !($m['is_bye'] ?? false) || ($m['athlete1'] && $m['athlete2']))
+                        ->filter(fn($m) => ($m['athlete1'] !== null || $m['athlete2'] !== null))
                         ->groupBy('round')
-                        ->sortKeysDesc(); // highest round first (most matches)
+                        ->sortKeysDesc();
 
-                    $maxRound   = $matchesByRound->keys()->max();
-                    $roundKeys  = $matchesByRound->keys()->values()->toArray();
-                    $totalRounds = count($roundKeys);
+                    $maxRound    = $matchesByRound->keys()->max();
+                    $roundKeys   = $matchesByRound->keys()->values()->toArray();
+
+                    // Bracket sizing
+                    $bCardW = 264;  // match card width (px)
+                    $bConnW = 40;   // connector arm width (px)
+                    $bSlotH = 110;  // base slot height at the first round (px)
+                    $bHdrH  = 48;   // round header height (px)
+                    $lineC  = 'rgba(245,158,11,0.65)'; // bracket line color
                 @endphp
 
-                <div style="overflow-x: auto; padding-bottom: 1.5rem; -webkit-overflow-scrolling: touch;">
-                <div style="display: inline-flex; align-items: flex-start; min-width: max-content;">
+                <div style="overflow-x: auto; padding-bottom: 2rem; -webkit-overflow-scrolling: touch;">
+                <div style="display: inline-flex; align-items: flex-start; min-width: max-content; padding: 0 2px;">
 
                 @foreach($matchesByRound as $round => $roundMatches)
                 @php
-                    $loopIdx   = array_search($round, $roundKeys);
-                    $isFirst   = $loopIdx === 0;            // first column = most matches
-                    $isLast    = $round === 1;              // final
-                    $slotH     = (int) round($baseH * pow(2, $maxRound - $round));
-                    $matchesArr = $roundMatches->sortBy('position')->values();
-                    $roundLabel = $roundLabels[$round] ?? ($round === $maxRound && $maxRound > count($roundLabels) ? 'Premier tour' : "Tour $round");
+                    $loopIdx     = array_search($round, $roundKeys);
+                    $isFirst     = $loopIdx === 0;
+                    $isLast      = $round === 1;
+                    $slotH       = (int) round($bSlotH * pow(2, $maxRound - $round));
+                    $matchesArr  = $roundMatches->sortBy('position')->values();
+                    $roundLabel  = $roundLabels[$round] ?? ($round === $maxRound ? 'Premier tour' : "Tour {$round}");
+                    $colW        = $bCardW + ($isFirst ? 0 : $bConnW) + ($isLast ? 0 : $bConnW);
                 @endphp
 
-                {{-- Round column --}}
                 <div style="display: flex; flex-direction: column; flex-shrink: 0;">
 
                     {{-- Round header --}}
-                    <div style="width: {{ $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW) }}px; height: {{ $hdrH }}px; display: flex; align-items: center; justify-content: center; background: rgba(245,158,11,{{ $isLast ? '0.1' : '0.04' }}); border-bottom: 1px solid rgba(245,158,11,{{ $isLast ? '0.3' : '0.1' }});">
-                        <span style="font-size: 0.58rem; font-weight: 700; color: {{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.35)' }}; text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Space Grotesk', sans-serif;">{{ $roundLabel }}</span>
+                    <div style="
+                        width: {{ $colW }}px; height: {{ $bHdrH }}px;
+                        display: flex; align-items: center; justify-content: center;
+                        background: {{ $isLast ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.02)' }};
+                        border-bottom: 2px solid {{ $isLast ? 'rgba(245,158,11,0.55)' : 'rgba(255,255,255,0.08)' }};
+                    ">
+                        <span style="font-size: 0.62rem; font-weight: 800; color: {{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.4)' }}; text-transform: uppercase; letter-spacing: 0.22em; font-family: 'Space Grotesk', sans-serif;">{{ $roundLabel }}</span>
                     </div>
 
                     {{-- Match slots --}}
@@ -184,82 +191,128 @@
                         $ph1 = !empty($a1['placeholder']);
                         $ph2 = !empty($a2['placeholder']);
                         $pos = (int)($match['position'] ?? 1);
-                        $isTopOfPair = ($pos % 2 !== 0); // odd = top of its pair
-
-                        // Total slot width: left connector (for non-first cols) + card + right arm (for non-final)
-                        $slotW = $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW);
+                        $isTopOfPair = ($pos % 2 !== 0);
+                        $isBye = ($match['is_bye'] ?? false);
+                        $hasWinner = (bool)$wid;
                     @endphp
 
-                    <div style="height: {{ $slotH }}px; width: {{ $slotW }}px; position: relative; display: flex; align-items: center;">
+                    <div style="height: {{ $slotH }}px; width: {{ $colW }}px; position: relative; display: flex; align-items: center;">
 
-                        {{-- Left horizontal connector line (all rounds except the first column) --}}
+                        {{-- Left horizontal connector ─────────────────────── --}}
                         @if(!$isFirst)
-                        <div style="width: {{ $connW }}px; height: 1px; background: rgba(245,158,11,0.28); flex-shrink: 0;"></div>
+                        <div style="width: {{ $bConnW }}px; height: 2px; background: {{ $lineC }}; flex-shrink: 0;"></div>
                         @endif
 
-                        {{-- Match card --}}
-                        <div style="width: {{ $cardW }}px; flex-shrink: 0; border: 1px solid rgba(255,255,255,{{ $wid ? '0.13' : '0.07' }}); background: #080808; overflow: hidden; {{ $isLast ? 'border-color: rgba(245,158,11,0.22);' : '' }}">
-                            {{-- Athlete 1 --}}
-                            <div style="padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 8px; background: {{ $a1w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                @if($a1w)
-                                <svg style="width: 9px; height: 9px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                @else
-                                <div style="width: 9px; flex-shrink: 0;"></div>
+                        {{-- ── Match card ──────────────────────────────────── --}}
+                        <div style="
+                            width: {{ $bCardW }}px; flex-shrink: 0;
+                            border: 2px solid {{ $isLast ? 'rgba(245,158,11,0.45)' : ($hasWinner ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)') }};
+                            background: #0a0a0a;
+                            overflow: hidden;
+                            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+                        ">
+                            {{-- Match number strip --}}
+                            <div style="
+                                padding: 3px 10px;
+                                background: {{ $isLast ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)' }};
+                                border-bottom: 1px solid rgba(255,255,255,0.06);
+                                display: flex; align-items: center; justify-content: space-between;
+                            ">
+                                <span style="font-size: 0.48rem; font-weight: 700; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.14em; font-family: 'Space Grotesk', sans-serif;">
+                                    Match {{ $match['id'] ?? '' }}
+                                </span>
+                                @if($isBye && !$hasWinner)
+                                <span style="font-size: 0.45rem; font-weight: 700; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.1em;">BYE</span>
                                 @endif
-                                <div style="min-width: 0; flex: 1;">
-                                    @if($a1)
-                                        <div style="font-size: 0.8rem; font-weight: {{ $a1w ? '700' : '500' }}; color: {{ $a1w ? '#f59e0b' : ($ph1 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['name'] ?? '' }}</div>
-                                        @if(!$ph1 && !empty($a1['club']))<div style="font-size: 0.6rem; color: rgba(255,255,255,0.25); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['club'] }}</div>@endif
-                                    @else
-                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
-                                    @endif
-                                </div>
                             </div>
-                            {{-- Athlete 2 --}}
-                            <div style="padding: 9px 12px; display: flex; align-items: center; gap: 8px; background: {{ $a2w ? 'rgba(245,158,11,0.07)' : 'transparent' }};">
-                                @if($a2w)
-                                <svg style="width: 9px; height: 9px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                @else
-                                <div style="width: 9px; flex-shrink: 0;"></div>
-                                @endif
+
+                            {{-- Athlete 1 row --}}
+                            <div style="
+                                padding: 10px 14px;
+                                border-bottom: 1px solid rgba(255,255,255,0.06);
+                                display: flex; align-items: center; gap: 10px;
+                                background: {{ $a1w ? 'rgba(245,158,11,0.1)' : 'transparent' }};
+                                min-height: 50px;
+                            ">
+                                {{-- Winner indicator dot --}}
+                                <div style="
+                                    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+                                    background: {{ $a1w ? '#f59e0b' : ($hasWinner && !$a1w ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)') }};
+                                "></div>
                                 <div style="min-width: 0; flex: 1;">
-                                    @if($a2)
-                                        <div style="font-size: 0.8rem; font-weight: {{ $a2w ? '700' : '500' }}; color: {{ $a2w ? '#f59e0b' : ($ph2 ? 'rgba(255,255,255,0.2)' : '#fff') }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['name'] ?? '' }}</div>
-                                        @if(!$ph2 && !empty($a2['club']))<div style="font-size: 0.6rem; color: rgba(255,255,255,0.25); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['club'] }}</div>@endif
+                                    @if($a1 && !$ph1)
+                                        <div style="
+                                            font-size: 0.84rem; font-family: 'Space Grotesk', sans-serif;
+                                            font-weight: {{ $a1w ? '700' : '500' }};
+                                            color: {{ $a1w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.9)') }};
+                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                                            {{ $hasWinner && !$a1w ? 'text-decoration: none;' : '' }}
+                                        ">{{ $a1['name'] ?? '' }}</div>
+                                        @if(!empty($a1['club']))<div style="font-size: 0.58rem; color: rgba(255,255,255,0.2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a1['club'] }}</div>@endif
+                                    @elseif($a1 && $ph1)
+                                        <div style="font-size: 0.78rem; color: rgba(255,255,255,0.2); font-style: italic; font-family: 'Space Grotesk', sans-serif;">{{ $a1['name'] }}</div>
                                     @else
-                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.18); font-style: italic;">Exempt</div>
+                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.15); font-style: italic; letter-spacing: 0.08em; font-family: 'Space Grotesk', sans-serif;">— BYE —</div>
                                     @endif
                                 </div>
+                                @if($a1w)
+                                <svg style="width: 14px; height: 14px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                @endif
+                            </div>
+
+                            {{-- Athlete 2 row --}}
+                            <div style="
+                                padding: 10px 14px;
+                                display: flex; align-items: center; gap: 10px;
+                                background: {{ $a2w ? 'rgba(245,158,11,0.1)' : 'transparent' }};
+                                min-height: 50px;
+                            ">
+                                <div style="
+                                    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+                                    background: {{ $a2w ? '#f59e0b' : ($hasWinner && !$a2w ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)') }};
+                                "></div>
+                                <div style="min-width: 0; flex: 1;">
+                                    @if($a2 && !$ph2)
+                                        <div style="
+                                            font-size: 0.84rem; font-family: 'Space Grotesk', sans-serif;
+                                            font-weight: {{ $a2w ? '700' : '500' }};
+                                            color: {{ $a2w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.9)') }};
+                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                                        ">{{ $a2['name'] ?? '' }}</div>
+                                        @if(!empty($a2['club']))<div style="font-size: 0.58rem; color: rgba(255,255,255,0.2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $a2['club'] }}</div>@endif
+                                    @elseif($a2 && $ph2)
+                                        <div style="font-size: 0.78rem; color: rgba(255,255,255,0.2); font-style: italic; font-family: 'Space Grotesk', sans-serif;">{{ $a2['name'] }}</div>
+                                    @else
+                                        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.15); font-style: italic; letter-spacing: 0.08em; font-family: 'Space Grotesk', sans-serif;">— BYE —</div>
+                                    @endif
+                                </div>
+                                @if($a2w)
+                                <svg style="width: 14px; height: 14px; color: #f59e0b; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                @endif
                             </div>
                         </div>
+                        {{-- ── end match card ─────────────────────────────── --}}
 
-                        {{-- Right bracket connector arm --}}
-                        {{-- Top of pair: vertical line from center DOWN to bottom, then horizontal to the right --}}
-                        {{-- Bottom of pair: vertical line from top UP to center, then horizontal to the right --}}
+                        {{-- Right bracket arm (L-shape connecting to next round) --}}
                         @if(!$isLast)
                         <div style="
-                            position: absolute;
-                            right: 0;
-                            width: {{ $connW }}px;
+                            position: absolute; right: 0; width: {{ $bConnW }}px;
                             {{ $isTopOfPair
-                                ? 'top: 50%; height: 50%; border-top: 1px solid rgba(245,158,11,0.3); border-right: 1px solid rgba(245,158,11,0.3);'
-                                : 'top: 0; height: 50%; border-bottom: 1px solid rgba(245,158,11,0.3); border-right: 1px solid rgba(245,158,11,0.3);'
+                                ? "top: 50%; height: 50%; border-top: 2px solid {$lineC}; border-right: 2px solid {$lineC};"
+                                : "top: 0; height: 50%; border-bottom: 2px solid {$lineC}; border-right: 2px solid {$lineC};"
                             }}
                         "></div>
                         @endif
 
                     </div>
-                    @endforeach
+                    @endforeach {{-- end match slots --}}
 
                 </div>
-                {{-- end round column --}}
-
-                @endforeach
-                {{-- end rounds loop --}}
+                @endforeach {{-- end rounds --}}
 
                 </div>
                 </div>
-                {{-- end bracket --}}
+                {{-- end direct elimination bracket --}}
                 @endif
 
                 {{-- ─── POOL ELIMINATION ────────────────────────────────── --}}
