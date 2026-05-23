@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AthleteRejectedMail;
+use App\Mail\AthleteValidatedMail;
 use App\Models\Athlete;
 use App\Models\Event;
 use App\Models\FinancialLog;
@@ -11,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class AthleteController extends Controller
@@ -217,6 +220,13 @@ class AthleteController extends Controller
             ])->save();
         });
 
+        $athlete->load(['coach', 'event']);
+        if ($athlete->coach?->email) {
+            try {
+                Mail::to($athlete->coach->email)->send(new AthleteValidatedMail($athlete));
+            } catch (\Throwable) {}
+        }
+
         return response()->json(['success' => true, 'message' => 'Athlète validé.', 'data' => $athlete->fresh()]);
     }
 
@@ -289,6 +299,13 @@ class AthleteController extends Controller
                 'validated_at'        => now(),
             ])->save();
         });
+
+        $athlete->load(['coach', 'event']);
+        if ($athlete->coach?->email) {
+            try {
+                Mail::to($athlete->coach->email)->send(new AthleteRejectedMail($athlete));
+            } catch (\Throwable) {}
+        }
 
         return response()->json(['success' => true, 'message' => 'Athlète rejeté.']);
     }

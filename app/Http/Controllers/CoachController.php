@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\CoachValidatedMail;
 use App\Models\Athlete;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class CoachController extends Controller
 {
@@ -58,6 +60,10 @@ class CoachController extends Controller
         abort_unless(Auth::user()->isTechnical(), 403);
 
         $coach->update(['is_validated' => true, 'account_status' => 'approved']);
+
+        try {
+            Mail::to($coach->email)->send(new CoachValidatedMail($coach));
+        } catch (\Throwable) {}
 
         return response()->json(['success' => true, 'message' => "Coach {$coach->name} validé."]);
     }

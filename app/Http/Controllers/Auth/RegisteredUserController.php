@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NewCoachRegisteredMail;
 use App\Models\User;
 use App\Rules\NotDisposableEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -60,6 +62,14 @@ class RegisteredUserController extends Controller
         ]);
 
         $user->assignRole('coach');
+
+        // Notify all admins
+        $admins = User::role('admin')->get();
+        foreach ($admins as $admin) {
+            try {
+                Mail::to($admin->email)->send(new NewCoachRegisteredMail($user));
+            } catch (\Throwable) {}
+        }
 
         return redirect()->route('login')
             ->with('success', 'Compte créé avec succès. Votre compte est en attente de validation par un administrateur.');
