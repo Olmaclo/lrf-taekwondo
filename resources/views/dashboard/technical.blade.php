@@ -482,6 +482,10 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-surface-500" x-text="draw.generated_at"></span>
+                                <button @click="openDrawResults(draw)" class="btn btn-ghost btn-sm gap-1 text-brand-400 px-2 py-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                    <span class="text-xs">Résultats</span>
+                                </button>
                                 <button @click="deleteDraw(draw.id)" class="btn btn-ghost btn-icon p-1.5 text-red-400">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
@@ -982,6 +986,110 @@
         </div>
     </div>
 
+    {{-- Draw results modal --}}
+    <div x-show="drawResultModal.open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="modal-backdrop" @keydown.escape.window="drawResultModal.open=false" style="display:none">
+        <div @click.stop class="modal max-w-2xl">
+            <div class="modal-header">
+                <div>
+                    <h3 class="text-base font-bold text-surface-50" x-text="drawResultModal.draw ? 'Résultats — ' + drawResultModal.draw.category : 'Résultats'"></h3>
+                    <template x-if="drawResultModal.draw && drawResultModal.draw.event_slug">
+                        <a :href="'/evenements/' + drawResultModal.draw.event_slug + '/tirages'" target="_blank" class="text-xs text-brand-400 hover:underline mt-0.5 inline-block">Voir le tirage public →</a>
+                    </template>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @click="refreshDrawResult()" :disabled="drawResultModal.loading" class="btn btn-ghost btn-icon p-1.5" title="Actualiser">
+                        <svg class="w-4 h-4" :class="drawResultModal.loading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                    <button @click="drawResultModal.open=false" class="btn btn-ghost btn-icon p-1"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+            </div>
+            <div class="modal-body space-y-4" style="max-height:70vh;overflow-y:auto">
+                <template x-if="drawResultModal.loading && !drawResultModal.draw?.matches">
+                    <div class="text-center py-10 text-surface-500"><div class="spinner mx-auto mb-2"></div>Chargement…</div>
+                </template>
+                <template x-if="drawResultModal.draw && !drawResultModal.draw.use_pools && drawResultModal.draw.matches">
+                    <div class="space-y-4">
+                        <template x-for="round in drawResultRounds()" :key="round.round">
+                            <div>
+                                <p class="text-xs font-semibold text-surface-400 uppercase tracking-widest mb-2" x-text="round.label"></p>
+                                <div class="space-y-2">
+                                    <template x-for="match in round.matches" :key="match.id">
+                                        <div class="bg-surface-700/40 rounded-lg p-3 flex items-center justify-between gap-3">
+                                            <div class="flex-1 space-y-1.5">
+                                                <template x-for="(athlete, idx) in [match.athlete1, match.athlete2]" :key="idx">
+                                                    <div class="flex items-center justify-between gap-2 rounded px-2 py-1.5 cursor-pointer transition-colors"
+                                                         :class="match.winner && match.winner.id === (athlete ? athlete.id : null) ? 'bg-amber-500/15 border border-amber-500/30' : (match.winner ? 'opacity-50' : 'hover:bg-surface-600/50')"
+                                                         @click="athlete && !match.winner ? setMatchWinner(match.id, athlete.id) : null">
+                                                        <div class="flex items-center gap-2 min-w-0">
+                                                            <template x-if="match.winner && match.winner.id === (athlete ? athlete.id : null)">
+                                                                <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                            </template>
+                                                            <span class="text-sm truncate" :class="athlete ? 'text-surface-100' : 'text-surface-500 italic'" x-text="athlete ? athlete.name : '— BYE —'"></span>
+                                                        </div>
+                                                        <span class="text-xs text-surface-500 flex-shrink-0" x-text="athlete ? athlete.club : ''"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div class="flex-shrink-0">
+                                                <template x-if="match.winner">
+                                                    <button @click="resetMatchWinner(match.id)" class="btn btn-ghost btn-icon p-1.5 text-surface-500 hover:text-red-400" title="Annuler résultat">
+                                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    </button>
+                                                </template>
+                                                <template x-if="!match.winner && match.athlete1 && match.athlete2">
+                                                    <span class="text-xs text-surface-500 italic">Cliquer pour désigner</span>
+                                                </template>
+                                                <template x-if="!match.winner && (!match.athlete1 || !match.athlete2)">
+                                                    <span class="text-xs text-amber-500/70">BYE</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="drawResultModal.draw && drawResultModal.draw.use_pools && drawResultModal.draw.pools">
+                    <div class="space-y-5">
+                        <template x-for="pool in (drawResultModal.draw.pools.pools ?? [])" :key="pool.name">
+                            <div>
+                                <p class="text-xs font-semibold text-surface-400 uppercase tracking-widest mb-2" x-text="pool.name"></p>
+                                <div class="space-y-2">
+                                    <template x-for="match in pool.matches" :key="match.id">
+                                        <div class="bg-surface-700/40 rounded-lg p-3 flex items-center justify-between gap-3">
+                                            <div class="flex-1 space-y-1.5">
+                                                <template x-for="(athlete, idx) in [match.athlete1, match.athlete2]" :key="idx">
+                                                    <div class="flex items-center justify-between gap-2 rounded px-2 py-1.5 cursor-pointer transition-colors"
+                                                         :class="match.winner && match.winner.id === (athlete ? athlete.id : null) ? 'bg-amber-500/15 border border-amber-500/30' : (match.winner ? 'opacity-50' : 'hover:bg-surface-600/50')"
+                                                         @click="athlete && !match.winner ? setMatchWinner(match.id, athlete.id) : null">
+                                                        <span class="text-sm truncate" :class="athlete ? 'text-surface-100' : 'text-surface-500 italic'" x-text="athlete ? athlete.name : '— BYE —'"></span>
+                                                        <span class="text-xs text-surface-500 flex-shrink-0" x-text="athlete ? athlete.club : ''"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <template x-if="match.winner">
+                                                <button @click="resetMatchWinner(match.id)" class="btn btn-ghost btn-icon p-1.5 text-surface-500 hover:text-red-400" title="Annuler résultat">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </template>
+                                            <template x-if="!match.winner">
+                                                <span class="text-xs text-surface-500 italic flex-shrink-0">Cliquer pour désigner</span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+            <div class="modal-footer">
+                <button @click="drawResultModal.open=false" class="btn btn-secondary">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     {{-- Gallery upload modal --}}
     <div x-show="galleryUploadModal" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="modal-backdrop" @keydown.escape.window="galleryUploadModal=false" style="display:none">
         <div @click.stop class="modal">
@@ -1108,6 +1216,7 @@ function technicalDashboard() {
         draws: [], drawsLoading: false, drawsEventFilter: '',
         drawForm: { event_id:'', category_key:'' },
         drawCategories: [], drawGenerating: false,
+        drawResultModal: { open: false, draw: null, loading: false },
 
         // ── Exports tab ─────────────────────────────────────────────────────
         exportEventId: '', exportStatus: '', exportAgeCategory: '', exportGender: '', exportWeightCategory: '', exportClub: '',
@@ -1487,6 +1596,75 @@ function technicalDashboard() {
             if (!confirm('Supprimer ce tirage ?')) return;
             const res = await api.delete(`/api/draws/${id}`);
             if (res.success) { $store.toast.success(res.message); this.loadDrawsList(); }
+        },
+        async openDrawResults(drawItem) {
+            this.drawResultModal = { open: true, draw: { ...drawItem, matches: null, pools: null }, loading: true };
+            try {
+                const data = await api.get(`/api/draws/${drawItem.id}`);
+                this.drawResultModal.draw = data.data;
+            } catch (e) {
+                $store.toast.error('Impossible de charger les matchs.');
+                this.drawResultModal.open = false;
+            } finally {
+                this.drawResultModal.loading = false;
+            }
+        },
+        async refreshDrawResult() {
+            if (!this.drawResultModal.draw) return;
+            this.drawResultModal.loading = true;
+            try {
+                const data = await api.get(`/api/draws/${this.drawResultModal.draw.id}`);
+                this.drawResultModal.draw = data.data;
+            } catch (e) {
+                $store.toast.error('Erreur lors de l\'actualisation.');
+            } finally {
+                this.drawResultModal.loading = false;
+            }
+        },
+        async setMatchWinner(matchId, athleteId) {
+            if (!this.drawResultModal.draw) return;
+            try {
+                const res = await api.post(`/api/draws/${this.drawResultModal.draw.id}/set-winner`, { match_id: matchId, athlete_id: athleteId });
+                if (res.success) {
+                    $store.toast.success('Vainqueur enregistré !');
+                    await this.refreshDrawResult();
+                } else {
+                    $store.toast.error(res.message ?? 'Erreur.');
+                }
+            } catch (e) {
+                $store.toast.error('Erreur lors de l\'enregistrement.');
+            }
+        },
+        async resetMatchWinner(matchId) {
+            if (!this.drawResultModal.draw) return;
+            try {
+                const res = await api.post(`/api/draws/${this.drawResultModal.draw.id}/reset-winner`, { match_id: matchId });
+                if (res.success) {
+                    $store.toast.success('Résultat réinitialisé.');
+                    await this.refreshDrawResult();
+                } else {
+                    $store.toast.error(res.message ?? 'Erreur.');
+                }
+            } catch (e) {
+                $store.toast.error('Erreur lors de la réinitialisation.');
+            }
+        },
+        drawResultRounds() {
+            if (!this.drawResultModal.draw?.matches) return [];
+            const matches = this.drawResultModal.draw.matches;
+            const maxRound = Math.max(...matches.map(m => m.round));
+            const roundLabel = (r) => {
+                if (r === 1) return 'Finale';
+                if (r === 2) return 'Demi-finales';
+                if (r === 3) return 'Quarts de finale';
+                return `Tour ${maxRound - r + 1}`;
+            };
+            const byRound = {};
+            for (const m of matches) {
+                if (!byRound[m.round]) byRound[m.round] = [];
+                byRound[m.round].push(m);
+            }
+            return Object.keys(byRound).map(r => ({ round: +r, label: roundLabel(+r), matches: byRound[r] })).sort((a, b) => b.round - a.round);
         },
 
         // ════════════════════════════════════════════════════════════════════
