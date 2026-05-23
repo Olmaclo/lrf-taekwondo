@@ -1,4 +1,9 @@
-<x-public-layout :title="$post->title" :description="$post->excerpt_auto">
+<x-public-layout
+    :title="$post->title"
+    :description="$post->excerpt ?? $post->excerpt_auto"
+    :image="$post->cover_url"
+    type="article"
+>
 
 <div style="background: #000; min-height: 100vh; padding-top: 80px;">
 

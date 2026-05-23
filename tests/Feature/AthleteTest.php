@@ -116,6 +116,69 @@ it('technical staff can delete an athlete', function () {
     $this->assertSoftDeleted('athletes', ['id' => $athlete->id]);
 });
 
+// ── Security rules ────────────────────────────────────────────────────────────
+
+it('cannot delete a validated athlete', function () {
+    $athlete = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'validated',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->deleteJson("/api/athletes/{$athlete->id}")
+        ->assertStatus(422);
+
+    $this->assertDatabaseHas('athletes', ['id' => $athlete->id]);
+});
+
+it('bulk delete skips validated athletes silently', function () {
+    $validated = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'validated',
+    ]);
+    $pending = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'pending',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/bulk-delete', ['ids' => [$validated->id, $pending->id]])
+        ->assertOk()
+        ->assertJsonFragment(['deleted' => 1]);
+
+    $this->assertDatabaseHas('athletes', ['id' => $validated->id]);
+    $this->assertSoftDeleted('athletes', ['id' => $pending->id]);
+});
+
+it('validation fails when weight_category is missing', function () {
+    $athlete = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'pending',
+        'weight_category'     => null,
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson("/api/athletes/{$athlete->id}/validate")
+        ->assertStatus(422);
+
+    expect($athlete->fresh()->registration_status)->toBe('pending');
+});
+
+it('coach cannot register athlete for closed event', function () {
+    $closed = Event::factory()->create(['status' => 'closed']);
+
+    $this->actingAs($this->coach)
+        ->postJson('/api/athletes', [
+            'first_name' => 'Test',
+            'last_name'  => 'Athlete',
+            'birth_date' => '2005-01-01',
+            'gender'     => 'M',
+            'club'       => 'Club',
+            'event_id'   => $closed->id,
+        ])
+        ->assertStatus(422);
+});
+
 // ── Bulk validate ─────────────────────────────────────────────────────────────
 
 it('technical staff can bulk validate athletes', function () {

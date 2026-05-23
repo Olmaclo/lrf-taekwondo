@@ -1,4 +1,9 @@
-<x-public-layout :title="$event->name" :description="$event->description ?? 'Événement ' . $event->name">
+<x-public-layout
+    :title="$event->name"
+    :description="$event->description ? Str::limit(strip_tags($event->description), 160) : 'Compétition de Taekwondo — ' . $event->name . ' · ' . $event->location"
+    :image="$event->cover_url"
+    type="article"
+>
 
 <div style="background: #000; min-height: 100vh; padding-top: 80px;">
 

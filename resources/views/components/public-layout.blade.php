@@ -1,4 +1,15 @@
-@props(['title' => 'Ligue de Fatick', 'description' => 'Ligue Régionale de Taekwondo de Fatick'])
+@props([
+    'title'       => 'Ligue de Fatick',
+    'description' => 'Ligue Régionale de Taekwondo de Fatick — Compétitions, résultats et inscriptions officielles.',
+    'image'       => null,
+    'type'        => 'website',
+])
+@php
+    $ogImage  = $image ?? asset('images/logo.png');
+    $ogUrl    = url()->current();
+    $siteName = 'LRF Taekwondo — Ligue de Fatick';
+    $fullTitle = $title . ' — Ligue de Fatick';
+@endphp
 <!DOCTYPE html>
 <html lang="fr" style="scroll-behavior: smooth; background: #000;">
 <head>
@@ -6,7 +17,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="{{ $description }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title }} — Ligue de Fatick</title>
+    <link rel="canonical" href="{{ $ogUrl }}">
+
+    {{-- Open Graph --}}
+    <meta property="og:type"        content="{{ $type }}">
+    <meta property="og:site_name"   content="{{ $siteName }}">
+    <meta property="og:title"       content="{{ $fullTitle }}">
+    <meta property="og:description" content="{{ $description }}">
+    <meta property="og:url"         content="{{ $ogUrl }}">
+    <meta property="og:image"       content="{{ $ogImage }}">
+    <meta property="og:locale"      content="fr_SN">
+
+    {{-- Twitter Card --}}
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="{{ $fullTitle }}">
+    <meta name="twitter:description" content="{{ $description }}">
+    <meta name="twitter:image"       content="{{ $ogImage }}">
+
+    <title>{{ $fullTitle }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
