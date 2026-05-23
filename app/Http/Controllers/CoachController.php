@@ -62,7 +62,7 @@ class CoachController extends Controller
         $coach->update(['is_validated' => true, 'account_status' => 'approved']);
 
         try {
-            Mail::to($coach->email)->send(new CoachValidatedMail($coach));
+            Mail::to($coach->email)->queue(new CoachValidatedMail($coach));
         } catch (\Throwable) {}
 
         return response()->json(['success' => true, 'message' => "Coach {$coach->name} validé."]);

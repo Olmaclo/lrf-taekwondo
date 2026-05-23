@@ -223,7 +223,7 @@ class AthleteController extends Controller
         $athlete->load(['coach', 'event']);
         if ($athlete->coach?->email) {
             try {
-                Mail::to($athlete->coach->email)->send(new AthleteValidatedMail($athlete));
+                Mail::to($athlete->coach->email)->queue(new AthleteValidatedMail($athlete));
             } catch (\Throwable) {}
         }
 
@@ -303,7 +303,7 @@ class AthleteController extends Controller
         $athlete->load(['coach', 'event']);
         if ($athlete->coach?->email) {
             try {
-                Mail::to($athlete->coach->email)->send(new AthleteRejectedMail($athlete));
+                Mail::to($athlete->coach->email)->queue(new AthleteRejectedMail($athlete));
             } catch (\Throwable) {}
         }
 

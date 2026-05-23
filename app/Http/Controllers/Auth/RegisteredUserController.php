@@ -73,7 +73,7 @@ class RegisteredUserController extends Controller
         $admins = User::role('admin')->get();
         foreach ($admins as $admin) {
             try {
-                Mail::to($admin->email)->send(new NewCoachRegisteredMail($user));
+                Mail::to($admin->email)->queue(new NewCoachRegisteredMail($user));
             } catch (\Throwable) {}
         }
 
