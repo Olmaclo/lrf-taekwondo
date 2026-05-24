@@ -50,51 +50,44 @@ Alpine.store('toast', {
 });
 
 // Global API helper
+async function _apiFetch(url, options = {}) {
+    const res = await fetch(url, options);
+    let json;
+    try { json = await res.json(); } catch { json = {}; }
+    if (!res.ok && json.success === undefined) {
+        json.success = false;
+        json.message = json.message ?? `Erreur ${res.status}`;
+    }
+    return json;
+}
+const _csrf = () => document.querySelector('meta[name="csrf-token"]')?.content;
 window.api = {
     async get(url, params = {}) {
         const qs = new URLSearchParams(params).toString();
-        const res = await fetch(qs ? `${url}?${qs}` : url, {
+        return _apiFetch(qs ? `${url}?${qs}` : url, {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             cache: 'no-store',
         });
-        return res.json();
     },
     async post(url, data = {}) {
-        const res = await fetch(url, {
+        return _apiFetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             body: JSON.stringify(data),
         });
-        return res.json();
     },
     async put(url, data = {}) {
-        const res = await fetch(url, {
+        return _apiFetch(url, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             body: JSON.stringify(data),
         });
-        return res.json();
     },
     async delete(url) {
-        const res = await fetch(url, {
+        return _apiFetch(url, {
             method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
+            headers: { 'X-CSRF-TOKEN': _csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
         });
-        return res.json();
     },
 };
 

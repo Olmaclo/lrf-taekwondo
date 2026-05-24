@@ -182,20 +182,15 @@ class AthleteController extends Controller
     public function bulkDestroy(Request $request): JsonResponse
     {
         abort_unless(Auth::user()->isTechnical(), 403);
-        $ids = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer']])['ids'];
+        $ids = $request->validate(['ids' => ['required', 'array', 'min:1'], 'ids.*' => ['integer']])['ids'];
 
-        // Exclude validated athletes from bulk deletion
-        $deleted = Athlete::whereIn('id', $ids)
-            ->where('registration_status', '!=', 'validated')
-            ->delete();
+        $deleted = Athlete::whereIn('id', $ids)->delete();
 
-        $skipped = count($ids) - $deleted;
-        $message = "{$deleted} athlète(s) supprimé(s)";
-        if ($skipped > 0) {
-            $message .= ", {$skipped} ignoré(s) (déjà validé(s))";
-        }
-
-        return response()->json(['success' => true, 'message' => $message . '.', 'deleted' => $deleted]);
+        return response()->json([
+            'success' => true,
+            'message' => "{$deleted} athlète(s) supprimé(s).",
+            'deleted' => $deleted,
+        ]);
     }
 
     // ── Validate / Reject ─────────────────────────────────────────────────────

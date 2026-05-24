@@ -1448,13 +1448,21 @@ function technicalDashboard() {
             if (res.success) { $store.toast.success(res.message); this.loadAthletes(); this.loadStats(); }
         },
         async bulkValidate() {
-            const res = await api.post('/api/athletes/bulk-validate', { ids: this.selected });
-            if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); }
+            if (this.selected.length === 0) return;
+            try {
+                const res = await api.post('/api/athletes/bulk-validate', { ids: this.selected });
+                if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); }
+                else $store.toast.error(res.message ?? 'Erreur lors de la validation.');
+            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
         },
         async bulkDelete() {
-            if (!confirm(`Supprimer ${this.selected.length} athlète(s) sélectionné(s) ?`)) return;
-            const res = await api.post('/api/athletes/bulk-delete', { ids: this.selected });
-            if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); this.loadStats(); }
+            if (this.selected.length === 0) return;
+            if (!confirm(`Supprimer définitivement ${this.selected.length} athlète(s) sélectionné(s) ?`)) return;
+            try {
+                const res = await api.post('/api/athletes/bulk-delete', { ids: this.selected });
+                if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); this.loadStats(); }
+                else $store.toast.error(res.message ?? 'Erreur lors de la suppression.');
+            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
         },
         async validateByClub() {
             const club = this.filters.club;
