@@ -61,7 +61,7 @@ it('returns full nested structure when called with no arguments', function () {
     expect($all)->toHaveKey('Junior');
     expect($all)->toHaveKey('Cadet');
     expect($all)->toHaveKey('Benjamin');
-    expect($all)->toHaveKey('Minime');
+    expect($all)->not->toHaveKey('Minime');
 });
 
 // ── getAgeCategoryFromAge ─────────────────────────────────────────────────────
@@ -78,8 +78,9 @@ it('maps age 13 to Cadet', function () {
     expect($this->svc->getAgeCategoryFromAge(13))->toBe('Cadet');
 });
 
-it('maps age 11 to Minime', function () {
-    expect($this->svc->getAgeCategoryFromAge(11))->toBe('Minime');
+it('returns null for age 10-11 (Minime supprimé)', function () {
+    expect($this->svc->getAgeCategoryFromAge(10))->toBeNull();
+    expect($this->svc->getAgeCategoryFromAge(11))->toBeNull();
 });
 
 it('maps age 9 to Benjamin', function () {

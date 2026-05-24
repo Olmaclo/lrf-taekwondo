@@ -22,7 +22,7 @@ class DrawController extends Controller
 
         $data = $request->validate([
             'event_id'        => ['required', 'exists:events,id'],
-            'age_category'    => ['required', Rule::in(['Benjamin', 'Minime', 'Cadet', 'Junior', 'Senior'])],
+            'age_category'    => ['required', Rule::in(['Benjamin', 'Cadet', 'Junior', 'Senior'])],
             'gender'          => ['required', Rule::in(['M', 'F'])],
             'weight_category' => ['required', 'string'],
         ]);

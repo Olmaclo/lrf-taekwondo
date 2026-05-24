@@ -145,7 +145,7 @@
             <div class="flex flex-wrap gap-2 items-center">
                 <select x-model="filters.age_category" @change="filters.weight_category=''; page=1; loadAthletes()" class="form-select text-sm w-auto">
                     <option value="">Toutes catégories d'âge</option>
-                    <option>Benjamin</option><option>Minime</option><option>Cadet</option><option>Junior</option><option>Senior</option>
+                    <option>Benjamin</option><option>Cadet</option><option>Junior</option><option>Senior</option>
                 </select>
                 <select x-model="filters.gender" @change="page=1;loadAthletes()" class="form-select text-sm w-auto">
                     <option value="">Tous genres</option>
@@ -416,7 +416,7 @@
                 </select>
                 <select x-model="catAge" class="form-select text-sm w-auto">
                     <option value="">Toutes catégories d'âge</option>
-                    <option>Benjamin</option><option>Minime</option><option>Cadet</option><option>Junior</option><option>Senior</option>
+                    <option>Benjamin</option><option>Cadet</option><option>Junior</option><option>Senior</option>
                 </select>
             </div>
             <div class="grid gap-4">
@@ -516,7 +516,7 @@
                         <label class="form-label">Catégorie d'âge</label>
                         <select x-model="exportAgeCategory" @change="exportWeightCategory=''" class="form-select text-sm">
                             <option value="">Toutes</option>
-                            <option>Benjamin</option><option>Minime</option><option>Cadet</option><option>Junior</option><option>Senior</option>
+                            <option>Benjamin</option><option>Cadet</option><option>Junior</option><option>Senior</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1202,8 +1202,6 @@ function technicalDashboard() {
         allCategories: [
             { age:'Benjamin', gender:'M', weights:['-21kg','-24kg','-27kg','-30kg','-33kg','-37kg','-41kg','-45kg','-49kg','+49kg'] },
             { age:'Benjamin', gender:'F', weights:['-17kg','-20kg','-23kg','-26kg','-29kg','-33kg','-37kg','-41kg','-44kg','+44kg'] },
-            { age:'Minime',   gender:'M', weights:['-27kg','-30kg','-33kg','-37kg','-41kg','-45kg','-49kg','-53kg','-57kg','+57kg'] },
-            { age:'Minime',   gender:'F', weights:['-23kg','-26kg','-29kg','-33kg','-37kg','-41kg','-44kg','-47kg','-51kg','+51kg'] },
             { age:'Cadet',    gender:'M', weights:['-33kg','-37kg','-41kg','-45kg','-49kg','-53kg','-57kg','-61kg','-65kg','+65kg'] },
             { age:'Cadet',    gender:'F', weights:['-29kg','-33kg','-37kg','-41kg','-44kg','-47kg','-51kg','-55kg','-59kg','+59kg'] },
             { age:'Junior',   gender:'M', weights:['-45kg','-48kg','-51kg','-55kg','-59kg','-63kg','-68kg','-73kg','-78kg','+78kg'] },
