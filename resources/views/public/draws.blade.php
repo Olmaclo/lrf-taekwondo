@@ -1,376 +1,781 @@
 <x-public-layout :title="'Tirages — ' . $event->name" :description="'Tirages officiels de ' . $event->name">
 
-<div style="background:#06060a;min-height:100vh;padding-top:80px;">
+<style>
+/* ============================================================
+   SOTAEMAD Brackets — design classique (adapté depuis v1 WP)
+   ============================================================ */
 
-{{-- HERO --}}
-<div style="position:relative;overflow:hidden;border-bottom:1px solid rgba(245,158,11,0.1);">
-    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(245,158,11,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;"></div>
-    <div style="position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:700px;height:340px;background:radial-gradient(ellipse,rgba(245,158,11,0.06) 0%,transparent 65%);pointer-events:none;"></div>
-    <div style="max-width:1280px;margin:0 auto;padding:5rem 2.5rem 4rem;position:relative;">
-        <a href="{{ route('public.event-detail', $event->slug) }}"
-           style="display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,0.25);font-size:0.68rem;text-decoration:none;margin-bottom:3rem;text-transform:uppercase;letter-spacing:0.14em;font-family:'Space Grotesk',sans-serif;"
-           onmouseover="this.style.color='rgba(245,158,11,0.8)'" onmouseout="this.style.color='rgba(255,255,255,0.25)'">
-            <svg style="width:12px;height:12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            {{ $event->name }}
+.spb-page {
+    --spb-black:        #0a0a0a;
+    --spb-dark:         #111111;
+    --spb-surface:      #1a1a1a;
+    --spb-surface-2:    #222222;
+    --spb-border:       #2a2a2a;
+    --spb-border-light: #333;
+    --spb-gold:         #FFD700;
+    --spb-gold-dim:     #E6C200;
+    --spb-gold-glow:    rgba(255,215,0,0.12);
+    --spb-white:        #fff;
+    --spb-gray-200:     #e5e5e5;
+    --spb-gray-400:     #a3a3a3;
+    --spb-gray-500:     #737373;
+    --spb-green:        #22c55e;
+    --spb-green-glow:   rgba(34,197,94,0.12);
+    --spb-blue:         #3b82f6;
+    --spb-red:          #ef4444;
+    --spb-radius:       12px;
+    --spb-radius-sm:    8px;
+    --spb-tr:           0.2s cubic-bezier(0.4,0,0.2,1);
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    color: var(--spb-white);
+    background: var(--spb-black);
+    overflow-x: hidden;
+}
+.spb-page *, .spb-page *::before, .spb-page *::after { box-sizing: border-box; }
+
+/* ── HERO ── */
+.spb-hero { background: var(--spb-surface); border-bottom: 1px solid var(--spb-border); }
+.spb-hero__inner { max-width:1280px; margin:0 auto; padding:7rem 2rem 2rem; }
+.spb-hero__back {
+    display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--spb-gray-400);
+    text-decoration:none; margin-bottom:16px; transition:color var(--spb-tr);
+}
+.spb-hero__back:hover { color:var(--spb-gold); }
+.spb-hero__title { font-size:clamp(1.4rem,3vw,2rem); font-weight:800; margin:0; color:var(--spb-white); letter-spacing:-0.02em; }
+.spb-hero__subtitle { font-size:15px; color:var(--spb-gold); margin:6px 0 20px; font-weight:600; }
+.spb-hero__stats { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.spb-hero__stat {
+    display:flex; flex-direction:column; align-items:center; padding:10px 20px;
+    background:var(--spb-surface-2); border:1px solid var(--spb-border); border-radius:var(--spb-radius-sm);
+    min-width:80px;
+}
+.spb-hero__stat-num   { font-size:22px; font-weight:800; color:var(--spb-gold); }
+.spb-hero__stat-label { font-size:11px; color:var(--spb-gray-500); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+.spb-btn {
+    display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border:none;
+    border-radius:var(--spb-radius-sm); font-size:13px; font-weight:600; font-family:inherit;
+    cursor:pointer; transition:all var(--spb-tr); text-decoration:none; line-height:1.4;
+}
+.spb-btn--sm   { padding:8px 16px; }
+.spb-btn--ghost { background:transparent; color:var(--spb-gray-400); border:1px solid var(--spb-border); }
+.spb-btn--ghost:hover { color:var(--spb-gold); border-color:var(--spb-gold); background:var(--spb-gold-glow); }
+
+/* ── SEARCH ── */
+.spb-search { background:var(--spb-black); border-bottom:1px solid var(--spb-border); }
+.spb-search__inner { max-width:1280px; margin:0 auto; padding:14px 2rem; }
+.spb-search__box {
+    display:flex; align-items:center; gap:10px; padding:10px 16px;
+    background:var(--spb-surface); border:2px solid var(--spb-border); border-radius:var(--spb-radius);
+    transition:border-color var(--spb-tr);
+}
+.spb-search__box:focus-within { border-color:var(--spb-gold); box-shadow:0 0 0 3px var(--spb-gold-glow); }
+.spb-search__icon { color:var(--spb-gray-500); flex-shrink:0; }
+.spb-search__box:focus-within .spb-search__icon { color:var(--spb-gold); }
+.spb-search__input {
+    flex:1; border:none; background:transparent; outline:none;
+    color:var(--spb-white); font-size:14px; font-family:inherit;
+}
+.spb-search__input::placeholder { color:var(--spb-gray-500); }
+.spb-search__clear {
+    display:flex; align-items:center; justify-content:center; width:26px; height:26px;
+    background:var(--spb-surface-2); border:1px solid var(--spb-border); border-radius:50%;
+    color:var(--spb-gray-400); cursor:pointer; transition:all var(--spb-tr); flex-shrink:0;
+}
+.spb-search__clear:hover { background:var(--spb-red); color:#fff; border-color:var(--spb-red); }
+.spb-search__results {
+    display:flex; align-items:center; margin-top:8px; padding:7px 12px;
+    background:var(--spb-surface); border-radius:var(--spb-radius-sm); font-size:13px; color:var(--spb-gray-400);
+}
+
+/* ── QUICK NAV ── */
+.spb-nav { background:var(--spb-surface); border-bottom:1px solid var(--spb-border); overflow-x:auto; }
+.spb-nav__inner { max-width:1280px; margin:0 auto; padding:10px 2rem; display:flex; gap:8px; flex-wrap:nowrap; }
+.spb-nav__item {
+    display:flex; align-items:center; gap:7px; padding:7px 13px;
+    background:var(--spb-surface-2); border:1px solid var(--spb-border); border-radius:var(--spb-radius-sm);
+    text-decoration:none; color:var(--spb-gray-200); font-size:13px; white-space:nowrap; transition:all var(--spb-tr); flex-shrink:0;
+}
+.spb-nav__item:hover { border-color:var(--spb-gold); color:var(--spb-white); }
+.spb-nav__item-label  { font-weight:600; }
+.spb-nav__item-count  { font-size:11px; color:var(--spb-gray-500); }
+.spb-nav__item-dot    { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.spb-nav__item-dot--done { background:var(--spb-green); }
+.spb-nav__item-dot--wait { background:var(--spb-gray-500); }
+
+/* ── CONTENT ── */
+.spb-content { max-width:1280px; margin:0 auto; padding:24px 2rem 60px; }
+
+/* ── SECTION ── */
+.spb-section { margin-bottom:48px; scroll-margin-top:80px; }
+.spb-section__header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--spb-border); flex-wrap:wrap; }
+.spb-section__title-group { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.spb-section__title   { font-size:18px; font-weight:700; margin:0; color:var(--spb-white); }
+.spb-section__count   { font-size:13px; color:var(--spb-gray-500); }
+
+.spb-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+.spb-badge--done { background:var(--spb-green-glow); color:var(--spb-green); }
+.spb-badge--wait { background:rgba(115,115,115,0.12); color:var(--spb-gray-500); }
+
+.spb-genre-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; margin-left:10px; vertical-align:middle; }
+.spb-genre-badge--male   { background:rgba(59,130,246,0.15); color:#60A5FA; border:1px solid rgba(59,130,246,0.25); }
+.spb-genre-badge--female { background:rgba(236,72,153,0.15); color:#F472B6; border:1px solid rgba(236,72,153,0.25); }
+
+/* ── BRACKET (elimination directe) ── */
+.spb-bracket { overflow-x:auto; overflow-y:visible; padding:16px 0; -webkit-overflow-scrolling:touch; }
+.spb-bracket::-webkit-scrollbar { height:8px; }
+.spb-bracket::-webkit-scrollbar-track { background:var(--spb-surface); border-radius:4px; }
+.spb-bracket::-webkit-scrollbar-thumb { background:rgba(255,215,0,0.3); border-radius:4px; }
+.spb-bracket::-webkit-scrollbar-thumb:hover { background:rgba(255,215,0,0.5); }
+
+.spb-bracket__wrapper { display:flex; align-items:stretch; min-width:max-content; gap:0; }
+.spb-bracket__round { display:flex; flex-direction:column; min-width:260px; padding:0 16px; }
+.spb-bracket__round--champion { min-width:180px; }
+.spb-bracket__round-title {
+    text-align:center; color:var(--spb-gold); font-weight:700; font-size:12px; padding:10px 14px; margin-bottom:16px;
+    background:var(--spb-gold-glow); border:1px solid rgba(255,215,0,0.2); border-radius:var(--spb-radius-sm);
+    text-transform:uppercase; letter-spacing:1px;
+}
+.spb-bracket__round-title--final    { background:rgba(255,215,0,0.2); border-color:var(--spb-gold); }
+.spb-bracket__round-title--champion { background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(230,194,0,0.15)); border-color:var(--spb-gold); }
+
+.spb-bracket__matches { display:flex; flex-direction:column; justify-content:space-around; flex:1; gap:0; }
+
+/* match card */
+.spb-match {
+    position:relative; margin:6px 0;
+    background:var(--spb-surface); border:1px solid var(--spb-border); border-radius:var(--spb-radius-sm);
+    overflow:visible; transition:all var(--spb-tr);
+}
+.spb-match:hover  { border-color:var(--spb-gold); box-shadow:0 2px 16px var(--spb-gold-glow); }
+.spb-match--final { border:2px solid var(--spb-gold); box-shadow:0 0 24px var(--spb-gold-glow); }
+.spb-match--bye   { border-color:rgba(34,197,94,0.3); }
+
+.spb-match__num {
+    position:absolute; top:-10px; left:50%; transform:translateX(-50%); z-index:2;
+    background:var(--spb-gold); color:var(--spb-black); font-size:10px; font-weight:800;
+    padding:2px 10px; border-radius:10px; white-space:nowrap; box-shadow:0 2px 6px rgba(255,215,0,0.3);
+}
+.spb-match__num--final { font-size:12px; padding:4px 14px; background:linear-gradient(135deg,#FFD700,#FFA500); }
+
+.spb-match__players { padding:4px 0; }
+.spb-match__player {
+    display:flex; align-items:center; gap:10px; padding:10px 14px;
+    border-bottom:1px solid var(--spb-border); transition:background var(--spb-tr);
+}
+.spb-match__player:last-child { border-bottom:none; }
+.spb-match__player:hover { background:rgba(255,215,0,0.04); }
+.spb-match__player--winner { background:rgba(34,197,94,0.08) !important; }
+.spb-match__player--winner .spb-match__name { color:var(--spb-green); font-weight:700; }
+.spb-match__player--bye { background:var(--spb-green-glow); }
+.spb-match__player--tbd { opacity:0.5; }
+
+.spb-match__seed {
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    background:var(--spb-surface-2); border:1px solid var(--spb-border-light); border-radius:50%;
+    font-size:10px; font-weight:700; color:var(--spb-gold); flex-shrink:0;
+}
+.spb-match__seed--bye { background:var(--spb-green); border-color:var(--spb-green); color:#fff; }
+.spb-match__seed--tbd { background:var(--spb-surface-2); color:var(--spb-gray-500); border-color:var(--spb-border); }
+
+.spb-match__info   { min-width:0; }
+.spb-match__name   { display:block; font-size:13px; font-weight:600; color:var(--spb-white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.spb-match__name--bye { color:var(--spb-green); }
+.spb-match__name--tbd { color:var(--spb-gray-500); font-style:italic; font-weight:400; }
+.spb-match__club   { display:block; font-size:10px; color:var(--spb-gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* matchup = groupe de 2 matchs qui se connectent au round suivant */
+.spb-matchup { display:flex; flex-direction:column; justify-content:center; flex:1; position:relative; }
+
+/* ligne horizontale droite de chaque match vers la ligne verticale */
+.spb-match__connector {
+    position:absolute; right:-16px; top:50%; transform:translateY(-1px);
+    width:16px; height:2px; background:var(--spb-border-light); z-index:1;
+}
+/* ligne verticale reliant les 2 matchs */
+.spb-matchup::after {
+    content:""; position:absolute; right:-16px; top:25%; bottom:25%;
+    width:2px; background:var(--spb-border-light); z-index:1;
+}
+/* ligne horizontale de sortie vers le round suivant */
+.spb-matchup::before {
+    content:""; position:absolute; right:-32px; top:50%; transform:translateY(-1px);
+    width:16px; height:2px; background:var(--spb-border-light); z-index:1;
+}
+
+/* champion */
+.spb-champion {
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px;
+    background:var(--spb-surface); border:2px solid var(--spb-gold); border-radius:var(--spb-radius);
+    text-align:center; box-shadow:0 0 30px var(--spb-gold-glow);
+}
+.spb-champion__icon  { color:var(--spb-gold); margin-bottom:8px; }
+.spb-champion__title { font-size:13px; font-weight:800; color:var(--spb-gold); text-transform:uppercase; letter-spacing:1.5px; }
+.spb-champion__name  { font-size:13px; color:var(--spb-gray-400); margin-top:4px; }
+
+/* légende */
+.spb-legend { display:flex; gap:20px; padding:14px 16px; background:var(--spb-surface); border-radius:var(--spb-radius-sm); margin-top:12px; flex-wrap:wrap; }
+.spb-legend__item { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--spb-gray-400); }
+.spb-legend__dot  { width:12px; height:12px; border-radius:3px; }
+.spb-legend__dot--gold  { background:var(--spb-gold); }
+.spb-legend__dot--green { background:var(--spb-green); }
+.spb-legend__dot--gray  { background:var(--spb-gray-500); }
+
+/* ── POOLS ── */
+.spb-pools { margin-top:8px; }
+.spb-pools__header { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:700; color:var(--spb-white); margin:0 0 6px; }
+.spb-pools__header svg { color:var(--spb-gold); }
+.spb-pools__desc { font-size:13px; color:var(--spb-gray-500); margin:0 0 20px; }
+.spb-pools__grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:20px; }
+
+.spb-pool { background:var(--spb-surface); border:1px solid var(--spb-border); border-radius:var(--spb-radius); overflow:hidden; }
+.spb-pool__header {
+    display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
+    background:var(--spb-gold-glow); border-bottom:1px solid var(--spb-border);
+}
+.spb-pool__letter { font-size:15px; font-weight:800; color:var(--spb-gold); }
+.spb-pool__count  { font-size:12px; color:var(--spb-gray-500); }
+
+.spb-pool__table { padding:0; }
+.spb-pool__row {
+    display:grid; grid-template-columns:28px 1fr 36px 36px 36px; align-items:center; gap:4px;
+    padding:9px 14px; border-bottom:1px solid var(--spb-border);
+}
+.spb-pool__row:last-child { border-bottom:none; }
+.spb-pool__row--head { background:var(--spb-surface-2); }
+.spb-pool__row--head .spb-pool__cell { font-size:10px; font-weight:700; color:var(--spb-gray-500); text-transform:uppercase; }
+.spb-pool__row--qualified { background:var(--spb-green-glow); }
+.spb-pool__row--qualified .spb-pool__cell--rank { color:var(--spb-green); font-weight:800; }
+
+.spb-pool__cell         { font-size:13px; color:var(--spb-gray-200); }
+.spb-pool__cell--rank   { font-weight:700; color:var(--spb-gold); text-align:center; }
+.spb-pool__cell--name   { min-width:0; overflow:hidden; }
+.spb-pool__cell--stat   { text-align:center; color:var(--spb-gray-500); font-size:12px; }
+
+.spb-pool__athlete-name { display:block; font-weight:600; font-size:13px; color:var(--spb-white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.spb-pool__athlete-club { display:block; font-size:10px; color:var(--spb-gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.spb-pool__matches       { padding:10px 14px; border-top:1px solid var(--spb-border); }
+.spb-pool__matches-title { font-size:11px; font-weight:700; color:var(--spb-gray-400); text-transform:uppercase; margin:0 0 8px; letter-spacing:0.5px; }
+
+.spb-pool__match { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; border-bottom:1px solid rgba(42,42,42,0.5); }
+.spb-pool__match:last-child { border-bottom:none; }
+.spb-pool__match--done .spb-pool__match-a { color:var(--spb-gray-400); }
+.spb-pool__match-num { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--spb-surface-2); border-radius:50%; font-size:10px; font-weight:700; color:var(--spb-gold); flex-shrink:0; }
+.spb-pool__match-a  { color:var(--spb-gray-200); font-weight:500; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.spb-pool__match-a--winner { color:var(--spb-green); font-weight:700; }
+.spb-pool__match-vs { color:var(--spb-gold); font-weight:800; font-size:10px; text-transform:uppercase; flex-shrink:0; }
+
+/* Finals (pool system) */
+.spb-finals { margin-top:28px; padding-top:24px; border-top:1px solid var(--spb-border); }
+.spb-finals__title { font-size:15px; font-weight:700; color:var(--spb-white); margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+.spb-finals__title span { color:var(--spb-gold); }
+.spb-finals__grid  { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; }
+.spb-finals__match {
+    background:var(--spb-surface); border:1px solid var(--spb-border); border-radius:var(--spb-radius-sm); overflow:hidden;
+}
+.spb-finals__match--finale { border-color:var(--spb-gold); box-shadow:0 0 20px var(--spb-gold-glow); }
+.spb-finals__match-label {
+    padding:6px 14px; background:var(--spb-gold-glow); border-bottom:1px solid var(--spb-border);
+    font-size:10px; font-weight:800; color:var(--spb-gold); text-transform:uppercase; letter-spacing:1px;
+}
+.spb-finals__player { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--spb-border); }
+.spb-finals__player:last-child { border-bottom:none; }
+.spb-finals__player--winner { background:rgba(34,197,94,0.08); }
+.spb-finals__player--winner .spb-finals__name { color:var(--spb-green); font-weight:700; }
+.spb-finals__player--placeholder { opacity:0.5; }
+.spb-finals__seed { width:22px; height:22px; display:flex; align-items:center; justify-content:center; background:var(--spb-surface-2); border:1px solid var(--spb-border-light); border-radius:50%; font-size:10px; font-weight:700; color:var(--spb-gold); flex-shrink:0; }
+.spb-finals__name { font-size:13px; font-weight:600; color:var(--spb-white); }
+.spb-finals__club { font-size:10px; color:var(--spb-gray-500); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .spb-hero__inner { padding-top:6rem; }
+    .spb-content     { padding:16px 1rem 40px; }
+    .spb-bracket     { margin:0 -1rem; padding:16px 1rem; }
+    .spb-pools__grid { grid-template-columns:1fr; }
+    .spb-pool__row   { grid-template-columns:24px 1fr 30px 30px 30px; gap:2px; padding:7px 10px; }
+}
+@media (max-width:1024px) {
+    .spb-bracket::after {
+        content:"← Glissez pour parcourir →"; display:block; text-align:center;
+        font-size:11px; color:var(--spb-gray-500); padding:8px 0 0; opacity:0.7;
+    }
+}
+@media print {
+    .spb-search, .spb-nav, .spb-hero .spb-btn { display:none !important; }
+    .spb-page { background:#fff; color:#000; }
+    .spb-match { border:1px solid #ccc; }
+    .spb-match__name { color:#000; }
+    .spb-champion { border:2px solid #333; box-shadow:none; }
+}
+</style>
+
+<div class="spb-page">
+
+{{-- ── HERO ─────────────────────────────────────────────────────────── --}}
+<section class="spb-hero">
+    <div class="spb-hero__inner">
+        <a href="{{ route('public.event-detail', $event->slug) }}" class="spb-hero__back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Retour à l'événement
         </a>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap;">
-            <div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
-                    <div style="width:28px;height:2px;background:#f59e0b;"></div>
-                    <span style="font-size:0.58rem;font-weight:700;color:#f59e0b;letter-spacing:0.32em;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">Tirages officiels</span>
-                    <div style="width:28px;height:2px;background:#f59e0b;"></div>
-                </div>
-                <h1 style="font-size:clamp(2rem,5vw,3.8rem);font-weight:900;color:#fff;line-height:1;letter-spacing:-0.04em;margin:0 0 1rem;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;">{{ $event->name }}</h1>
-                <span style="display:inline-flex;align-items:center;gap:7px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);padding:5px 14px;">
-                    <span style="font-size:0.62rem;font-weight:700;color:#f59e0b;letter-spacing:0.1em;text-transform:uppercase;">{{ $draws->count() }} catégorie(s)</span>
-                </span>
+        <h1 class="spb-hero__title">{{ $event->name }}</h1>
+        <p class="spb-hero__subtitle">Tableaux de compétition officiels</p>
+        <div class="spb-hero__stats">
+            <div class="spb-hero__stat">
+                <span class="spb-hero__stat-num">{{ $draws->sum('total_athletes') }}</span>
+                <span class="spb-hero__stat-label">Athlètes</span>
             </div>
-            <a href="{{ route('public.athlete-list', $event->slug) }}"
-               style="display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,0.4);font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,0.1);padding:11px 22px;"
-               onmouseover="this.style.color='#f59e0b';this.style.borderColor='rgba(245,158,11,0.4)'" onmouseout="this.style.color='rgba(255,255,255,0.4)';this.style.borderColor='rgba(255,255,255,0.1)'">
-                Liste des athlètes <svg style="width:12px;height:12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </a>
+            <div class="spb-hero__stat">
+                <span class="spb-hero__stat-num">{{ $draws->count() }}</span>
+                <span class="spb-hero__stat-label">Catégories</span>
+            </div>
+            <div class="spb-hero__stat">
+                <span class="spb-hero__stat-num">{{ $draws->where('use_pools', false)->count() }}</span>
+                <span class="spb-hero__stat-label">Brackets</span>
+            </div>
+            <div class="spb-hero__stat">
+                <span class="spb-hero__stat-num">{{ $draws->where('use_pools', true)->count() }}</span>
+                <span class="spb-hero__stat-label">Poules</span>
+            </div>
         </div>
+        <button class="spb-btn spb-btn--ghost spb-btn--sm" onclick="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimer
+        </button>
+    </div>
+</section>
+
+{{-- ── BARRE DE RECHERCHE ──────────────────────────────────────────────── --}}
+<div class="spb-search">
+    <div class="spb-search__inner">
+        <div class="spb-search__box">
+            <svg class="spb-search__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="spb-search" class="spb-search__input" placeholder="Rechercher une catégorie, un athlète, un club…" autocomplete="off">
+            <button id="spb-search-clear" class="spb-search__clear" style="display:none;" onclick="spbClear()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div id="spb-search-results" class="spb-search__results" style="display:none;"></div>
     </div>
 </div>
 
-@if($draws->isEmpty())
-<div style="padding:8rem 0;text-align:center;">
-    <p style="color:rgba(255,255,255,0.2);font-size:0.875rem;">Les tirages n'ont pas encore été effectués.</p>
-</div>
-@else
-
-@php $roundLabels=[1=>'Finale',2=>'Demi-finales',3=>'Quarts',4=>'Huitièmes',5=>'1er Tour']; @endphp
-
-<div style="padding:5rem 0 8rem;">
-<div style="max-width:1400px;margin:0 auto;padding:0 2rem;">
-
-@php $drawNum=0; @endphp
-@foreach($draws as $draw)
-@php
-    $drawNum++;
-    $genderLabel = \App\Models\Athlete::genderLabel($draw->gender,$draw->age_category??'');
-    $genderColor = $draw->gender==='M' ? '#60a5fa' : '#f472b6';
-    $champion=null; $runnerUp=null;
-    if(!$draw->use_pools && $draw->matches){
-        $final=collect($draw->matches)->where('round',1)->first();
-        if($final && !empty($final['winner'])){
-            $champion=$final['winner'];
-            $a1f=$final['athlete1']??null; $a2f=$final['athlete2']??null;
-            if($a1f && $a2f && !empty($final['winner_id']))
-                $runnerUp=($a1f['id']??null)==$final['winner_id'] ? $a2f : $a1f;
-        }
-    }
-    if($draw->use_pools && $draw->pools){
-        $gf=collect($draw->pools['finals']??[])->where('pool','FINALE')->first();
-        if($gf && !empty($gf['winner'])) $champion=$gf['winner'];
-    }
-@endphp
-
-<div style="margin-bottom:8rem;">
-
-    {{-- Category header --}}
-    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:3rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div style="font-family:'Space Grotesk',sans-serif;font-size:4rem;font-weight:900;color:rgba(245,158,11,0.06);line-height:1;flex-shrink:0;letter-spacing:-0.05em;user-select:none;">{{ str_pad($drawNum,2,'0',STR_PAD_LEFT) }}</div>
-        <div>
-            <div style="display:inline-flex;align-items:center;gap:6px;background:{{ $draw->gender==='M' ? 'rgba(96,165,250,0.07)' : 'rgba(244,114,182,0.07)' }};border:1px solid {{ $draw->gender==='M' ? 'rgba(96,165,250,0.2)' : 'rgba(244,114,182,0.2)' }};padding:3px 10px;margin-bottom:8px;">
-                <div style="width:5px;height:5px;border-radius:50%;background:{{ $genderColor }};"></div>
-                <span style="font-size:0.56rem;font-weight:700;color:{{ $genderColor }};text-transform:uppercase;letter-spacing:0.2em;font-family:'Space Grotesk',sans-serif;">{{ $genderLabel }}</span>
-            </div>
-            <h2 style="font-size:clamp(1.4rem,3vw,2.2rem);font-weight:900;color:#fff;margin:0 0 6px;font-family:'Space Grotesk',sans-serif;letter-spacing:-0.03em;text-transform:uppercase;line-height:1.05;">
-                {{ $draw->age_category }} <span style="color:rgba(255,255,255,0.3);font-weight:400;font-size:0.72em;">{{ $draw->weight_category }}</span>
-            </h2>
-            <p style="font-size:0.6rem;color:rgba(255,255,255,0.22);letter-spacing:0.1em;text-transform:uppercase;margin:0;">
-                {{ $draw->total_athletes }} athlète(s) &nbsp;·&nbsp; {{ $draw->use_pools ? 'Format poules' : 'Élimination directe' }}
-                @if($draw->generated_at) &nbsp;·&nbsp; {{ $draw->generated_at->format('d/m/Y') }} @endif
-            </p>
-        </div>
-    </div>
-
-    {{-- Champion banner --}}
-    @if($champion)
-    <div style="position:relative;overflow:hidden;margin-bottom:2.5rem;">
-        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#f59e0b;"></div>
-        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 15% 50%,rgba(245,158,11,0.08) 0%,transparent 50%);pointer-events:none;"></div>
-        <div style="border:1px solid rgba(245,158,11,0.25);border-left:none;background:rgba(245,158,11,0.03);padding:1.5rem 2rem 1.5rem 1.75rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
-            <div style="width:48px;height:48px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg style="width:24px;height:24px;color:#f59e0b;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
-            </div>
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:0.52rem;font-weight:700;color:rgba(245,158,11,0.5);text-transform:uppercase;letter-spacing:0.32em;margin-bottom:5px;font-family:'Space Grotesk',sans-serif;">Champion</div>
-                <div style="font-size:1.7rem;font-weight:900;color:#f59e0b;font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em;text-transform:uppercase;line-height:1.1;">{{ $champion['name']??'' }}</div>
-                @if(!empty($champion['club']))<div style="font-size:0.68rem;color:rgba(255,255,255,0.28);margin-top:4px;text-transform:uppercase;">{{ $champion['club'] }}</div>@endif
-            </div>
-            @if($runnerUp)
-            <div style="padding-left:2rem;border-left:1px solid rgba(255,255,255,0.06);">
-                <div style="font-size:0.52rem;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:0.28em;margin-bottom:5px;font-family:'Space Grotesk',sans-serif;">Finaliste</div>
-                <div style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.4);font-family:'Space Grotesk',sans-serif;text-transform:uppercase;">{{ $runnerUp['name']??'' }}</div>
-                @if(!empty($runnerUp['club']))<div style="font-size:0.62rem;color:rgba(255,255,255,0.18);margin-top:3px;text-transform:uppercase;">{{ $runnerUp['club'] }}</div>@endif
-            </div>
-            @endif
-        </div>
-    </div>
-    @endif
-
-    {{-- ══ DIRECT ELIMINATION — BRACKET ══ --}}
-    @if(!$draw->use_pools && $draw->matches)
-    @php
-        $allMatches     = collect($draw->matches);
-        $matchesByRound = $allMatches
-            ->filter(fn($m) => $m['athlete1']!==null || $m['athlete2']!==null)
-            ->groupBy('round')
-            ->sortKeysDesc();
-
-        $maxRound  = $matchesByRound->keys()->max();
-        $roundKeys = $matchesByRound->keys()->values()->toArray();
-
-        // Slot dimensions
-        $slotH  = 56;   // height of each athlete slot (px)
-        $divH   = 2;    // divider between the two slots
-        $cardH  = $slotH * 2 + $divH; // total match card height = 114px
-        $cardW  = 240;  // match card width (px)
-        $connW  = 48;   // connector arm width (px)
-        $hdrH   = 52;   // round header height (px)
-        $lc     = 'rgba(245,158,11,0.65)';  // line color
-        $lw     = '3';                       // line width px
-    @endphp
-
-    <div style="overflow-x:auto;padding-bottom:1.5rem;-webkit-overflow-scrolling:touch;">
-    <div style="display:inline-flex;align-items:flex-start;gap:0;min-width:max-content;">
-
-    @foreach($matchesByRound as $round => $roundMatches)
-    @php
-        $loopIdx    = array_search($round, $roundKeys);
-        $isFirst    = ($loopIdx === 0);
-        $isLast     = ($round === 1);
-        $containerH = (int) round(($slotH * 2 + $divH + 2) * pow(2, $maxRound - $round));
-        $matchesArr = $roundMatches->sortBy('position')->values();
-        $roundLabel = $roundLabels[$round] ?? ($round===$maxRound ? '1er Tour' : "Tour {$round}");
-        $colW       = $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW);
-    @endphp
-
-    <div style="display:flex;flex-direction:column;flex-shrink:0;">
-
-        {{-- Round header --}}
-        <div style="width:{{ $colW }}px;height:{{ $hdrH }}px;display:flex;align-items:center;justify-content:center;padding:0 {{ $isFirst ? 0 : $connW }}px 0 {{ $isLast ? 0 : $connW }}px;">
-            <div style="
-                padding:6px 18px;
-                background:{{ $isLast ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)' }};
-                border-top:{{ $isLast ? "3px solid #f59e0b" : "2px solid rgba(255,255,255,0.1)" }};
-                border-left:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
-                border-right:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
-                border-bottom:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
-                display:flex;align-items:center;gap:7px;
-            ">
-                @if($isLast)<svg style="width:11px;height:11px;color:#f59e0b;" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endif
-                <span style="font-size:0.6rem;font-weight:800;color:{{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.4)' }};text-transform:uppercase;letter-spacing:0.22em;font-family:'Space Grotesk',sans-serif;">{{ $roundLabel }}</span>
-            </div>
-        </div>
-
-        {{-- Matches --}}
-        @foreach($matchesArr as $mIdx => $match)
-        @php
-            $a1  = $match['athlete1'] ?? null;
-            $a2  = $match['athlete2'] ?? null;
-            $wid = $match['winner_id'] ?? null;
-            $a1w = $wid && $a1 && isset($a1['id']) && (int)$a1['id']===(int)$wid;
-            $a2w = $wid && $a2 && isset($a2['id']) && (int)$a2['id']===(int)$wid;
-            $ph1 = !empty($a1['placeholder']);
-            $ph2 = !empty($a2['placeholder']);
-            $pos = (int)($match['position'] ?? 1);
-            $isTopOfPair = ($pos % 2 !== 0);
-            $hasWinner   = (bool)$wid;
-            $seed1 = $a1['seed'] ?? null;
-            $seed2 = $a2['seed'] ?? null;
-        @endphp
-
-        <div style="height:{{ $containerH }}px;width:{{ $colW }}px;position:relative;display:flex;align-items:center;">
-
-            {{-- Left connector: horizontal line from previous round --}}
-            @if(!$isFirst)
-            <div style="width:{{ $connW }}px;height:{{ $lw }}px;background:{{ $lc }};flex-shrink:0;"></div>
-            @endif
-
-            {{-- MATCH CARD --}}
-            <div style="
-                width:{{ $cardW }}px;flex-shrink:0;
-                border:{{ $isLast ? "2px solid rgba(245,158,11,0.5)" : "1px solid rgba(255,255,255,0.13)" }};
-                box-shadow:{{ $isLast ? '0 0 40px rgba(245,158,11,0.10)' : 'none' }};
-                overflow:hidden;
-            ">
-
-                {{-- Athlete 1 slot --}}
-                @php
-                    $bg1 = $a1w ? '#1c1200' : ($hasWinner && !$a1w ? '#080810' : '#0e0e18');
-                    $tc1 = $a1w ? '#f59e0b' : ($hasWinner && !$a1w ? 'rgba(255,255,255,0.22)' : ($ph1 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.88)'));
-                    $fw1 = $a1w ? '800' : ($hasWinner && !$a1w ? '400' : '600');
-                    $ac1 = $a1w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.1)' : $genderColor);
-                @endphp
-                <div style="height:{{ $slotH }}px;display:flex;align-items:center;background:{{ $bg1 }};border-bottom:{{ $divH }}px solid #06060a;position:relative;">
-                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $ac1 }};{{ $a1w ? '' : ($hasWinner ? 'opacity:0.35;' : 'opacity:0.7;') }}"></div>
-                    @if($seed1 !== null && !$ph1 && $a1)
-                    <div style="width:26px;text-align:center;flex-shrink:0;font-size:0.6rem;font-weight:800;color:{{ $a1w ? '#f59e0b' : 'rgba(255,255,255,0.2)' }};font-family:'Space Grotesk',sans-serif;">{{ $seed1 }}</div>
-                    @endif
-                    <div style="flex:1;min-width:0;padding:0 10px 0 {{ $seed1 !== null && !$ph1 && $a1 ? '0' : '10' }}px;">
-                        @if($a1 && !$ph1)
-                            <div style="font-size:0.82rem;font-weight:{{ $fw1 }};color:{{ $tc1 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.02em;">{{ $a1['name']??'' }}</div>
-                            @if(!empty($a1['club']) && !$hasWinner)<div style="font-size:0.53rem;color:rgba(255,255,255,0.2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a1['club'] }}</div>@endif
-                        @elseif($a1 && $ph1)
-                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a1['name'] }}</div>
-                        @else
-                            <div style="font-size:0.6rem;color:rgba(255,255,255,0.1);letter-spacing:0.14em;font-family:'Space Grotesk',sans-serif;">BYE</div>
-                        @endif
-                    </div>
-                    @if($a1w)
-                    <svg style="width:14px;height:14px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    @endif
-                </div>
-
-                {{-- Athlete 2 slot --}}
-                @php
-                    $bg2 = $a2w ? '#1c1200' : ($hasWinner && !$a2w ? '#080810' : '#0e0e18');
-                    $tc2 = $a2w ? '#f59e0b' : ($hasWinner && !$a2w ? 'rgba(255,255,255,0.22)' : ($ph2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.88)'));
-                    $fw2 = $a2w ? '800' : ($hasWinner && !$a2w ? '400' : '600');
-                    $ac2 = $a2w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.1)' : $genderColor);
-                @endphp
-                <div style="height:{{ $slotH }}px;display:flex;align-items:center;background:{{ $bg2 }};position:relative;">
-                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $ac2 }};{{ $a2w ? '' : ($hasWinner ? 'opacity:0.35;' : 'opacity:0.7;') }}"></div>
-                    @if($seed2 !== null && !$ph2 && $a2)
-                    <div style="width:26px;text-align:center;flex-shrink:0;font-size:0.6rem;font-weight:800;color:{{ $a2w ? '#f59e0b' : 'rgba(255,255,255,0.2)' }};font-family:'Space Grotesk',sans-serif;">{{ $seed2 }}</div>
-                    @endif
-                    <div style="flex:1;min-width:0;padding:0 10px 0 {{ $seed2 !== null && !$ph2 && $a2 ? '0' : '10' }}px;">
-                        @if($a2 && !$ph2)
-                            <div style="font-size:0.82rem;font-weight:{{ $fw2 }};color:{{ $tc2 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.02em;">{{ $a2['name']??'' }}</div>
-                            @if(!empty($a2['club']) && !$hasWinner)<div style="font-size:0.53rem;color:rgba(255,255,255,0.2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a2['club'] }}</div>@endif
-                        @elseif($a2 && $ph2)
-                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a2['name'] }}</div>
-                        @else
-                            <div style="font-size:0.6rem;color:rgba(255,255,255,0.1);letter-spacing:0.14em;font-family:'Space Grotesk',sans-serif;">BYE</div>
-                        @endif
-                    </div>
-                    @if($a2w)
-                    <svg style="width:14px;height:14px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    @endif
-                </div>
-
-            </div>
-            {{-- end match card --}}
-
-            {{-- Right L-shaped bracket arm --}}
-            @if(!$isLast)
-            <div style="
-                position:absolute;right:0;width:{{ $connW }}px;
-                {{ $isTopOfPair
-                    ? "top:50%;height:50%;border-top:{$lw}px solid {$lc};border-right:{$lw}px solid {$lc};"
-                    : "top:0;height:50%;border-bottom:{$lw}px solid {$lc};border-right:{$lw}px solid {$lc};"
-                }}
-            "></div>
-            @endif
-
-        </div>
-        @endforeach
-
-    </div>
-    @endforeach
-
-    </div>{{-- inline-flex --}}
-    </div>{{-- overflow-x --}}
-    @endif
-
-    {{-- ══ POOLS ══ --}}
-    @if($draw->use_pools && $draw->pools)
-    @php $pools=$draw->pools['pools']??[]; $finals=$draw->pools['finals']??[]; @endphp
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;margin-bottom:3rem;">
-        @foreach($pools as $pool)
-        @php
-            $poolWins=[];
-            foreach($pool['athletes'] as $a){ $poolWins[$a['id']]=0; }
-            foreach($pool['matches'] as $m){ if(!empty($m['winner_id'])) $poolWins[$m['winner_id']]=($poolWins[$m['winner_id']]??0)+1; }
-            arsort($poolWins);
-        @endphp
-        <div style="background:#0b0b0f;border:1px solid rgba(255,255,255,0.07);overflow:hidden;position:relative;">
-            <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{{ $genderColor }};opacity:0.5;"></div>
-            <div style="padding:11px 14px 11px 17px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
-                <span style="font-size:0.58rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.2em;font-family:'Space Grotesk',sans-serif;">{{ $pool['name'] }}</span>
-                <span style="font-size:0.54rem;color:rgba(255,255,255,0.18);text-transform:uppercase;">{{ count($pool['athletes']) }} combattants</span>
-            </div>
-            <div>
-                @foreach(array_keys($poolWins) as $rank => $athleteId)
-                @php $athlete=collect($pool['athletes'])->firstWhere('id',$athleteId); $wins=$poolWins[$athleteId]; $r1=($rank===0); @endphp
-                @if($athlete)
-                <div style="padding:9px 14px 9px 17px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);background:{{ $r1&&$wins>0 ? 'rgba(245,158,11,0.04)' : 'transparent' }};">
-                    <div style="width:18px;text-align:center;font-size:0.62rem;font-weight:800;color:{{ $r1&&$wins>0 ? '#f59e0b' : 'rgba(255,255,255,0.14)' }};font-family:'Space Grotesk',sans-serif;flex-shrink:0;">{{ $rank+1 }}</div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-size:0.77rem;font-weight:{{ $r1&&$wins>0 ? '800':'500' }};color:{{ $r1&&$wins>0 ? '#fff':'rgba(255,255,255,0.58)' }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $athlete['name'] }}</div>
-                        @if(!empty($athlete['club']))<div style="font-size:0.54rem;color:rgba(255,255,255,0.2);margin-top:1px;text-transform:uppercase;">{{ $athlete['club'] }}</div>@endif
-                    </div>
-                    <div style="font-size:0.68rem;font-weight:800;color:{{ $wins>0 ? '#f59e0b':'rgba(255,255,255,0.14)' }};flex-shrink:0;font-family:'Space Grotesk',sans-serif;">{{ $wins }}V</div>
-                </div>
-                @endif
-                @endforeach
-            </div>
-            <div style="padding:10px 14px 10px 17px;border-top:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:0.5rem;font-weight:700;color:rgba(255,255,255,0.14);text-transform:uppercase;letter-spacing:0.2em;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;">Combats</div>
-                @foreach($pool['matches'] as $mi => $match)
-                @php $a1=$match['athlete1']??null; $a2=$match['athlete2']??null; $wid=$match['winner_id']??null; @endphp
-                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;{{ $mi<count($pool['matches'])-1 ? 'border-bottom:1px solid rgba(255,255,255,0.03);':'' }}">
-                    <span style="font-size:0.5rem;color:rgba(255,255,255,0.14);width:18px;flex-shrink:0;font-family:'Space Grotesk',sans-serif;font-weight:700;">C{{ $mi+1 }}</span>
-                    <span style="font-size:0.74rem;font-weight:{{ $wid&&$a1&&($a1['id']??null)==$wid?'700':'400' }};color:{{ $wid&&$a1&&($a1['id']??null)==$wid?'#f59e0b':'rgba(255,255,255,0.48)' }};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;">{{ $a1['name']??'—' }}</span>
-                    <span style="font-size:0.48rem;font-weight:800;color:rgba(255,255,255,0.14);flex-shrink:0;letter-spacing:0.12em;">VS</span>
-                    <span style="font-size:0.74rem;font-weight:{{ $wid&&$a2&&($a2['id']??null)==$wid?'700':'400' }};color:{{ $wid&&$a2&&($a2['id']??null)==$wid?'#f59e0b':'rgba(255,255,255,0.48)' }};flex:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;">{{ $a2['name']??'—' }}</span>
-                </div>
-                @endforeach
-            </div>
-        </div>
+{{-- ── NAVIGATION RAPIDE ───────────────────────────────────────────────── --}}
+@if($draws->isNotEmpty())
+<nav class="spb-nav">
+    <div class="spb-nav__inner">
+        @foreach($draws as $draw)
+        <a href="#cat-{{ $draw->id }}" class="spb-nav__item">
+            <span class="spb-nav__item-label">{{ $draw->age_category }} {{ $draw->weight_category }}</span>
+            <span class="spb-nav__item-count">{{ $draw->total_athletes }}</span>
+            <span class="spb-nav__item-dot spb-nav__item-dot--done"></span>
+        </a>
         @endforeach
     </div>
-
-    @if(count($finals))
-    <div style="border-top:1px solid rgba(245,158,11,0.1);padding-top:2.5rem;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:2rem;">
-            <div style="width:22px;height:2px;background:#f59e0b;"></div>
-            <span style="font-size:0.56rem;font-weight:700;color:rgba(245,158,11,0.65);text-transform:uppercase;letter-spacing:0.3em;font-family:'Space Grotesk',sans-serif;">Phase finale</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:3rem;align-items:flex-start;">
-        @php $finalsByPhase=collect($finals)->groupBy('pool'); @endphp
-        @foreach($finalsByPhase as $phase => $phaseMatches)
-        <div style="min-width:260px;">
-            <div style="font-size:0.54rem;font-weight:700;color:{{ $phase==='FINALE'?'#f59e0b':'rgba(255,255,255,0.28)' }};text-transform:uppercase;letter-spacing:0.22em;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:{{ $phase==='FINALE'?'2px solid rgba(245,158,11,0.4)':'1px solid rgba(255,255,255,0.06)' }};font-family:'Space Grotesk',sans-serif;">{{ $phase }}</div>
-            @foreach($phaseMatches as $match)
-            @php
-                $a1=$match['athlete1']??null; $a2=$match['athlete2']??null; $wid=$match['winner_id']??null;
-                $ph1=!empty($a1['placeholder']); $ph2=!empty($a2['placeholder']);
-                $a1w=$wid&&$a1&&!$ph1&&($a1['id']??null)==$wid;
-                $a2w=$wid&&$a2&&!$ph2&&($a2['id']??null)==$wid;
-                $hw=(bool)$wid;
-            @endphp
-            <div style="border:{{ $phase==='FINALE' ? '2px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)' }};overflow:hidden;margin-bottom:0.5rem;box-shadow:{{ $phase==='FINALE'?'0 0 24px rgba(245,158,11,0.08)':'none' }};">
-                <div style="height:52px;display:flex;align-items:center;border-bottom:2px solid #06060a;background:{{ $a1w?'#1c1200':($hw?'#080810':'#0e0e18') }};">
-                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $a1w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.4)':$genderColor) }};{{ $a1w?'':'opacity:0.6;' }}"></div>
-                    <span style="flex:1;padding:0 12px;font-size:0.8rem;font-weight:{{ $a1w?'800':'500' }};color:{{ $a1w?'#f59e0b':($ph1?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.85)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a1['name']??'—' }}</span>
-                    @if($a1w)<svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
-                </div>
-                <div style="height:52px;display:flex;align-items:center;background:{{ $a2w?'#1c1200':($hw?'#080810':'#0e0e18') }};">
-                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $a2w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.4)':$genderColor) }};{{ $a2w?'':'opacity:0.6;' }}"></div>
-                    <span style="flex:1;padding:0 12px;font-size:0.8rem;font-weight:{{ $a2w?'800':'500' }};color:{{ $a2w?'#f59e0b':($ph2?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.85)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a2['name']??'—' }}</span>
-                    @if($a2w)<svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
-                </div>
-            </div>
-            @endforeach
-        </div>
-        @endforeach
-        </div>
-    </div>
-    @endif
-    @endif
-
-</div>
-@endforeach
-
-</div>
-</div>
+</nav>
 @endif
 
+{{-- ── CONTENU PRINCIPAL ───────────────────────────────────────────────── --}}
+<div class="spb-content">
+    @if($draws->isEmpty())
+        <div style="text-align:center;padding:5rem 0;color:var(--spb-gray-500);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 16px;display:block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Les tirages n'ont pas encore été effectués.</p>
+        </div>
+    @else
+    @foreach($draws as $draw)
+    @php
+        $genderBadge = $draw->gender === 'M'
+            ? '<span class="spb-genre-badge spb-genre-badge--male">♂ Masculin</span>'
+            : '<span class="spb-genre-badge spb-genre-badge--female">♀ Féminin</span>';
+
+        // Champion (pour élimination directe)
+        $champion = null;
+        if (!$draw->use_pools && $draw->matches) {
+            $finalMatch = collect($draw->matches)->where('round', 1)->first();
+            $champion = $finalMatch['winner']['name'] ?? null;
+        }
+    @endphp
+    <section class="spb-section" id="cat-{{ $draw->id }}">
+
+        {{-- En-tête de section --}}
+        <div class="spb-section__header">
+            <div class="spb-section__title-group">
+                <h2 class="spb-section__title">
+                    {{ $draw->age_category }} {{ $draw->weight_category }}
+                    {!! $genderBadge !!}
+                </h2>
+                <span class="spb-section__count">{{ $draw->total_athletes }} athlètes</span>
+            </div>
+            <span class="spb-badge spb-badge--done">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Tirage effectué
+            </span>
+        </div>
+
+        {{-- ── BRACKET ÉLIMINATION DIRECTE ── --}}
+        @if(!$draw->use_pools && $draw->matches)
+        @php
+            $matchesByRound = collect($draw->matches)->groupBy('round')->sortKeysDesc();
+            $maxRound       = $matchesByRound->keys()->first();
+            $roundNames     = [
+                1 => 'Finale',
+                2 => 'Demi-finales',
+                3 => 'Quarts de finale',
+                4 => 'Huitièmes de finale',
+                5 => 'Seizièmes de finale',
+            ];
+        @endphp
+        <div class="spb-bracket">
+            <div class="spb-bracket__wrapper">
+
+                @foreach($matchesByRound as $round => $roundMatches)
+                @php
+                    $isFinal  = ($round == 1);
+                    $hasNext  = ($round > 1);
+                    $rName    = $roundNames[$round] ?? 'Tour ' . ($maxRound - $round + 1);
+                    $sorted   = $roundMatches->sortBy('position')->values();
+                @endphp
+                <div class="spb-bracket__round" data-round="{{ $round }}">
+                    <div class="spb-bracket__round-title {{ $isFinal ? 'spb-bracket__round-title--final' : '' }}">
+                        {{ $rName }}
+                    </div>
+                    <div class="spb-bracket__matches">
+                        @for($idx = 0; $idx < $sorted->count(); $idx += 2)
+                        @php
+                            $m1         = $sorted[$idx];
+                            $m2         = $sorted[$idx + 1] ?? null;
+                            $isMatchup  = $hasNext && $m2;
+                            $isBye1     = $m1['is_bye'] ?? false;
+                            $isBye2     = $m2 ? ($m2['is_bye'] ?? false) : false;
+                            $winner1Id  = $m1['winner_id'] ?? null;
+                            $winner2Id  = $m2['winner_id'] ?? null;
+                            $pos1       = $m1['position'] ?? ($idx + 1);
+                            $pos2       = $m2['position'] ?? ($idx + 2);
+                            $seed1a     = ($pos1 - 1) * 2 + 1;
+                            $seed1b     = ($pos1 - 1) * 2 + 2;
+                            $seed2a     = ($pos2 - 1) * 2 + 1;
+                            $seed2b     = ($pos2 - 1) * 2 + 2;
+                        @endphp
+
+                        @if($isMatchup)<div class="spb-matchup">@endif
+
+                        {{-- Match 1 --}}
+                        <div class="spb-match {{ $isBye1 ? 'spb-match--bye' : '' }} {{ $isFinal && !$m2 ? 'spb-match--final' : '' }}"
+                             data-match="{{ $m1['id'] ?? $idx+1 }}">
+                            <span class="spb-match__num {{ $isFinal && !$m2 ? 'spb-match__num--final' : '' }}">
+                                {{ $isFinal && !$m2 ? 'FINALE' : 'M' . ($m1['id'] ?? $idx+1) }}
+                            </span>
+                            <div class="spb-match__players">
+                                {{-- Athlète 1 --}}
+                                @if($m1['athlete1'] ?? null)
+                                <div class="spb-match__player {{ ($winner1Id && $winner1Id == ($m1['athlete1']['id'] ?? null)) ? 'spb-match__player--winner' : '' }}">
+                                    <span class="spb-match__seed">{{ $seed1a }}</span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name">{{ $m1['athlete1']['name'] ?? '?' }}</span>
+                                        <span class="spb-match__club">{{ $m1['athlete1']['club'] ?? '' }}</span>
+                                    </div>
+                                </div>
+                                @else
+                                <div class="spb-match__player spb-match__player--tbd">
+                                    <span class="spb-match__seed spb-match__seed--tbd">?</span>
+                                    <div class="spb-match__info"><span class="spb-match__name spb-match__name--tbd">En attente</span></div>
+                                </div>
+                                @endif
+
+                                {{-- Athlète 2 / BYE --}}
+                                @if($m1['athlete2'] ?? null)
+                                <div class="spb-match__player {{ ($winner1Id && $winner1Id == ($m1['athlete2']['id'] ?? null)) ? 'spb-match__player--winner' : '' }}">
+                                    <span class="spb-match__seed">{{ $seed1b }}</span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name">{{ $m1['athlete2']['name'] ?? '?' }}</span>
+                                        <span class="spb-match__club">{{ $m1['athlete2']['club'] ?? '' }}</span>
+                                    </div>
+                                </div>
+                                @elseif($isBye1)
+                                <div class="spb-match__player spb-match__player--bye">
+                                    <span class="spb-match__seed spb-match__seed--bye">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name spb-match__name--bye">Exempt (Bye)</span>
+                                        <span class="spb-match__club">Qualifié directement</span>
+                                    </div>
+                                </div>
+                                @else
+                                <div class="spb-match__player spb-match__player--tbd">
+                                    <span class="spb-match__seed spb-match__seed--tbd">?</span>
+                                    <div class="spb-match__info"><span class="spb-match__name spb-match__name--tbd">En attente</span></div>
+                                </div>
+                                @endif
+                            </div>
+                            @if($hasNext)<div class="spb-match__connector"></div>@endif
+                        </div>
+
+                        {{-- Match 2 (si existe dans le round) --}}
+                        @if($m2)
+                        <div class="spb-match {{ $isBye2 ? 'spb-match--bye' : '' }}"
+                             data-match="{{ $m2['id'] ?? $idx+2 }}">
+                            <span class="spb-match__num">M{{ $m2['id'] ?? $idx+2 }}</span>
+                            <div class="spb-match__players">
+                                @if($m2['athlete1'] ?? null)
+                                <div class="spb-match__player {{ ($winner2Id && $winner2Id == ($m2['athlete1']['id'] ?? null)) ? 'spb-match__player--winner' : '' }}">
+                                    <span class="spb-match__seed">{{ $seed2a }}</span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name">{{ $m2['athlete1']['name'] ?? '?' }}</span>
+                                        <span class="spb-match__club">{{ $m2['athlete1']['club'] ?? '' }}</span>
+                                    </div>
+                                </div>
+                                @else
+                                <div class="spb-match__player spb-match__player--tbd">
+                                    <span class="spb-match__seed spb-match__seed--tbd">?</span>
+                                    <div class="spb-match__info"><span class="spb-match__name spb-match__name--tbd">En attente</span></div>
+                                </div>
+                                @endif
+
+                                @if($m2['athlete2'] ?? null)
+                                <div class="spb-match__player {{ ($winner2Id && $winner2Id == ($m2['athlete2']['id'] ?? null)) ? 'spb-match__player--winner' : '' }}">
+                                    <span class="spb-match__seed">{{ $seed2b }}</span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name">{{ $m2['athlete2']['name'] ?? '?' }}</span>
+                                        <span class="spb-match__club">{{ $m2['athlete2']['club'] ?? '' }}</span>
+                                    </div>
+                                </div>
+                                @elseif($isBye2)
+                                <div class="spb-match__player spb-match__player--bye">
+                                    <span class="spb-match__seed spb-match__seed--bye">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </span>
+                                    <div class="spb-match__info">
+                                        <span class="spb-match__name spb-match__name--bye">Exempt (Bye)</span>
+                                        <span class="spb-match__club">Qualifié directement</span>
+                                    </div>
+                                </div>
+                                @else
+                                <div class="spb-match__player spb-match__player--tbd">
+                                    <span class="spb-match__seed spb-match__seed--tbd">?</span>
+                                    <div class="spb-match__info"><span class="spb-match__name spb-match__name--tbd">En attente</span></div>
+                                </div>
+                                @endif
+                            </div>
+                            @if($hasNext)<div class="spb-match__connector"></div>@endif
+                        </div>
+                        @endif
+
+                        @if($isMatchup)</div>@endif
+                        @endfor
+                    </div>
+                </div>
+                @endforeach
+
+                {{-- CHAMPION --}}
+                <div class="spb-bracket__round spb-bracket__round--champion" data-round="champion">
+                    <div class="spb-bracket__round-title spb-bracket__round-title--champion">Champion</div>
+                    <div class="spb-bracket__matches">
+                        <div class="spb-champion">
+                            <svg class="spb-champion__icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+                                <path d="M4 22h16"/><path d="M10 22V8a6 6 0 0112 0v14"/><path d="M14 22V8a6 6 0 00-12 0v14"/>
+                            </svg>
+                            <span class="spb-champion__title">Vainqueur</span>
+                            <span class="spb-champion__name">{{ $champion ?? 'En attente' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{{-- end wrapper --}}
+
+            {{-- Légende --}}
+            <div class="spb-legend">
+                <div class="spb-legend__item"><span class="spb-legend__dot spb-legend__dot--gold"></span> Match à jouer</div>
+                <div class="spb-legend__item"><span class="spb-legend__dot spb-legend__dot--green"></span> Vainqueur / Exempt</div>
+                <div class="spb-legend__item"><span class="spb-legend__dot spb-legend__dot--gray"></span> En attente</div>
+            </div>
+        </div>{{-- end bracket --}}
+
+        {{-- ── POULES ── --}}
+        @elseif($draw->use_pools && $draw->pools)
+        @php
+            $pools   = $draw->pools['pools']   ?? [];
+            $finals  = $draw->pools['finals']  ?? [];
+        @endphp
+        <div class="spb-pools">
+            <div class="spb-pools__header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+                Phase de poules — {{ count($pools) }} poule(s)
+            </div>
+            <p class="spb-pools__desc">Les vainqueurs de chaque poule se qualifient pour la phase finale.</p>
+
+            <div class="spb-pools__grid">
+                @foreach($pools as $pool)
+                @php
+                    // Calculer les victoires par athlète
+                    $wins = [];
+                    foreach ($pool['athletes'] as $a) { $wins[$a['id']] = 0; }
+                    foreach ($pool['matches'] as $m) {
+                        if (!empty($m['winner_id'])) {
+                            $wins[$m['winner_id']] = ($wins[$m['winner_id']] ?? 0) + 1;
+                        }
+                    }
+                    // Classer par victoires décroissantes
+                    $ranked = $pool['athletes'];
+                    usort($ranked, fn($a, $b) => ($wins[$b['id']] ?? 0) <=> ($wins[$a['id']] ?? 0));
+                    $poolWinnerId = $pool['winner']['id'] ?? ($ranked[0]['id'] ?? null);
+                @endphp
+                <div class="spb-pool">
+                    <div class="spb-pool__header">
+                        <span class="spb-pool__letter">{{ $pool['name'] }}</span>
+                        <span class="spb-pool__count">{{ count($pool['athletes']) }} athlètes</span>
+                    </div>
+
+                    {{-- Classement --}}
+                    <div class="spb-pool__table">
+                        <div class="spb-pool__row spb-pool__row--head">
+                            <span class="spb-pool__cell spb-pool__cell--rank">#</span>
+                            <span class="spb-pool__cell spb-pool__cell--name">Athlète</span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">V</span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">D</span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">Pts</span>
+                        </div>
+                        @foreach($ranked as $rIdx => $athlete)
+                        @php
+                            $w = $wins[$athlete['id']] ?? 0;
+                            $totalGames = count($pool['athletes']) - 1;
+                            $d = $totalGames - $w;
+                            $isQualified = ($rIdx === 0);
+                        @endphp
+                        <div class="spb-pool__row {{ $isQualified ? 'spb-pool__row--qualified' : '' }}">
+                            <span class="spb-pool__cell spb-pool__cell--rank">{{ $rIdx + 1 }}</span>
+                            <span class="spb-pool__cell spb-pool__cell--name">
+                                <span class="spb-pool__athlete-name">{{ $athlete['name'] }}</span>
+                                <span class="spb-pool__athlete-club">{{ $athlete['club'] }}</span>
+                            </span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">{{ $w }}</span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">{{ $d < 0 ? '—' : $d }}</span>
+                            <span class="spb-pool__cell spb-pool__cell--stat">{{ $w }}</span>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Matchs de poule --}}
+                    <div class="spb-pool__matches">
+                        <h4 class="spb-pool__matches-title">Matchs</h4>
+                        @foreach($pool['matches'] as $pm)
+                        @php
+                            $hasPmWinner = !empty($pm['winner_id']);
+                            $a1w = $hasPmWinner && $pm['winner_id'] == ($pm['athlete1']['id'] ?? null);
+                            $a2w = $hasPmWinner && $pm['winner_id'] == ($pm['athlete2']['id'] ?? null);
+                        @endphp
+                        <div class="spb-pool__match {{ $hasPmWinner ? 'spb-pool__match--done' : '' }}">
+                            <span class="spb-pool__match-num">{{ $pm['position'] ?? loop->index + 1 }}</span>
+                            <span class="spb-pool__match-a {{ $a1w ? 'spb-pool__match-a--winner' : '' }}">
+                                {{ $pm['athlete1']['name'] ?? '?' }}
+                            </span>
+                            <span class="spb-pool__match-vs">vs</span>
+                            <span class="spb-pool__match-a {{ $a2w ? 'spb-pool__match-a--winner' : '' }}">
+                                {{ $pm['athlete2']['name'] ?? '?' }}
+                            </span>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
+            </div>{{-- end pools grid --}}
+
+            {{-- Phase finale --}}
+            @if(!empty($finals))
+            <div class="spb-finals">
+                <h3 class="spb-finals__title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                    Phase <span>finale</span>
+                </h3>
+                <div class="spb-finals__grid">
+                    @foreach($finals as $fm)
+                    @php
+                        $isFinalMatch = str_contains(strtoupper($fm['pool'] ?? ''), 'FINALE') && !str_contains(strtoupper($fm['pool'] ?? ''), 'DEMI');
+                        $fWinnerId    = $fm['winner_id'] ?? null;
+                        $fa1          = $fm['athlete1'] ?? null;
+                        $fa2          = $fm['athlete2'] ?? null;
+                        $fa1IsPlaceholder = $fa1['placeholder'] ?? false;
+                        $fa2IsPlaceholder = $fa2['placeholder'] ?? false;
+                    @endphp
+                    <div class="spb-finals__match {{ $isFinalMatch ? 'spb-finals__match--finale' : '' }}">
+                        <div class="spb-finals__match-label">{{ $fm['pool'] ?? 'Match' }}</div>
+                        <div class="spb-finals__player {{ ($fWinnerId && !$fa1IsPlaceholder && $fWinnerId == ($fa1['id'] ?? null)) ? 'spb-finals__player--winner' : '' }} {{ $fa1IsPlaceholder ? 'spb-finals__player--placeholder' : '' }}">
+                            <span class="spb-finals__seed">1</span>
+                            <div>
+                                <div class="spb-finals__name">{{ $fa1['name'] ?? 'En attente' }}</div>
+                                @if(!$fa1IsPlaceholder && !empty($fa1['club']))<div class="spb-finals__club">{{ $fa1['club'] }}</div>@endif
+                            </div>
+                        </div>
+                        <div class="spb-finals__player {{ ($fWinnerId && !$fa2IsPlaceholder && $fWinnerId == ($fa2['id'] ?? null)) ? 'spb-finals__player--winner' : '' }} {{ $fa2IsPlaceholder ? 'spb-finals__player--placeholder' : '' }}">
+                            <span class="spb-finals__seed">2</span>
+                            <div>
+                                <div class="spb-finals__name">{{ $fa2['name'] ?? 'En attente' }}</div>
+                                @if(!$fa2IsPlaceholder && !empty($fa2['club']))<div class="spb-finals__club">{{ $fa2['club'] }}</div>@endif
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+        </div>{{-- end pools --}}
+        @endif
+
+    </section>
+    @endforeach
+    @endif
+</div>{{-- end content --}}
+
+<div style="max-width:1280px;margin:0 auto;padding:16px 2rem;border-top:1px solid var(--spb-border);">
+    <p style="font-size:12px;color:var(--spb-gray-500);margin:0;text-align:center;">
+        {{ $event->name }} — Tirages officiels · {{ now()->format('d/m/Y') }}
+    </p>
 </div>
+
+</div>{{-- end spb-page --}}
+
+<script>
+(function(){
+    var input   = document.getElementById('spb-search');
+    var clear   = document.getElementById('spb-search-clear');
+    var results = document.getElementById('spb-search-results');
+    var sections = document.querySelectorAll('.spb-section');
+    var navItems = document.querySelectorAll('.spb-nav__item');
+    if (!input) return;
+
+    input.addEventListener('input', function() {
+        var q = this.value.trim().toLowerCase();
+        clear.style.display = q ? 'flex' : 'none';
+        if (!q) {
+            sections.forEach(function(s){ s.style.display=''; });
+            navItems.forEach(function(n){ n.style.display=''; });
+            results.style.display = 'none';
+            return;
+        }
+        var visible = 0;
+        sections.forEach(function(s, i) {
+            var match = s.textContent.toLowerCase().includes(q);
+            s.style.display = match ? '' : 'none';
+            if (navItems[i]) navItems[i].style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        results.style.display = 'flex';
+        results.textContent = visible === 0
+            ? 'Aucun résultat pour "' + input.value.trim() + '"'
+            : visible + ' catégorie' + (visible > 1 ? 's' : '') + ' sur ' + sections.length;
+    });
+})();
+
+function spbClear() {
+    var input = document.getElementById('spb-search');
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+}
+</script>
+
 </x-public-layout>
