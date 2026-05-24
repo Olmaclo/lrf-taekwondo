@@ -297,9 +297,9 @@ class DrawGenerationService
         }
         return [
             'id'       => $athlete->id ?? null,
-            'name'     => property_exists($athlete, 'full_name') ? $athlete->full_name : ($athlete->name ?? ''),
+            'name'     => $athlete->full_name ?: ($athlete->first_name . ' ' . $athlete->last_name),
             'club'     => $athlete->club ?? '',
-            'category' => property_exists($athlete, 'category_label') ? $athlete->category_label : '',
+            'category' => $athlete->category_label ?? '',
             'seed'     => null,
         ];
     }

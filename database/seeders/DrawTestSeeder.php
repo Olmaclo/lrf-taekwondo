@@ -219,7 +219,7 @@ class DrawTestSeeder extends Seeder
         Athlete::reguard();
 
         // ── Supprimer les anciens tirages pour forcer la régénération ──────────
-        Draw::where('event_id', $event->id)->delete();
+        Draw::where('event_id', $event->id)->forceDelete();
 
         // ── Générer les tirages ────────────────────────────────────────────────
         Auth::login($technical);
