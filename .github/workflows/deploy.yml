@@ -8,36 +8,28 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  post-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Wait for Hostinger Git pull to complete
+        run: sleep 30
 
-      - name: Deploy files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./
-          server-dir: /home/u600930908/domains/lrftaekwondo.com/laravel/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/vendor/**
-            .env
-            storage/logs/**
-            storage/framework/cache/**
-            storage/framework/sessions/**
-            storage/framework/views/**
-
-      - name: Post-deploy via webhook (artisan commands)
+      - name: Trigger artisan commands via webhook
         run: |
-          curl -s -X POST \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "X-Deploy-Secret: ${{ secrets.DEPLOY_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 120 \
-            "https://lrftaekwondo.com/webhook/deploy" | jq .
+            "https://lrftaekwondo.com/webhook/deploy")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Webhook failed with status $HTTP_CODE"
+            exit 1
+          fi
