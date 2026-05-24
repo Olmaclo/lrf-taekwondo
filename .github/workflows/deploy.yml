@@ -67,15 +67,3 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Seed draw test data
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p "$SSH_PORT" \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SSH_HOST" \
-            "cd /home/u600930908/domains/lrftaekwondo.com/laravel && php artisan db:seed --class=DrawTestSeeder --force"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
