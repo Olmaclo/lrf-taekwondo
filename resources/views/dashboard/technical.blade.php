@@ -241,6 +241,11 @@
                                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                             </button>
                                         </template>
+                                        <template x-if="athlete.registration_status === 'pending'">
+                                            <button @click="openRejectModal(athlete.id, athlete.full_name)" class="btn btn-ghost btn-icon p-1.5 text-amber-400" title="Rejeter">
+                                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                            </button>
+                                        </template>
                                         <button @click="deleteAthlete(athlete.id, athlete.full_name)" class="btn btn-ghost btn-icon p-1.5 text-red-400" title="Supprimer">
                                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
@@ -844,6 +849,18 @@
                         </select>
                     </div>
                     <div class="form-group"><label class="form-label">N° Licence</label><input type="text" x-model="athleteForm.license_number" class="form-input"></div>
+                    <div class="form-group"><label class="form-label">Catégorie d'âge</label>
+                        <select x-model="athleteForm.age_category" @change="athleteForm.weight_category=''" class="form-select">
+                            <option value="">Auto (par date de naissance)</option>
+                            <option>Minime</option><option>Cadet</option><option>Junior</option><option>Senior</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Catégorie de poids</label>
+                        <select x-model="athleteForm.weight_category" class="form-select" :disabled="!athleteForm.age_category || !athleteForm.gender">
+                            <option value="">Auto (par poids)</option>
+                            <template x-for="w in modalWeightOptions" :key="w"><option :value="w" x-text="w"></option></template>
+                        </select>
+                    </div>
                     <div class="form-group col-span-2"><label class="form-label">Nationalité</label><input type="text" x-model="athleteForm.nationality" class="form-input" placeholder="ex: Sénégalais"></div>
                 </div>
             </div>
@@ -1122,6 +1139,30 @@
         </div>
     </div>
 
+    {{-- Reject athlete modal --}}
+    <div x-show="rejectModal.open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="modal-backdrop" @keydown.escape.window="rejectModal.open=false" style="display:none">
+        <div @click.stop class="modal max-w-sm">
+            <div class="modal-header">
+                <h3 class="text-base font-bold text-surface-50">Rejeter l'inscription</h3>
+                <button @click="rejectModal.open=false" class="btn btn-ghost btn-icon p-1"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="modal-body space-y-3">
+                <p class="text-sm text-surface-300">Rejeter l'inscription de <strong class="text-surface-100" x-text="rejectModal.name"></strong> ?</p>
+                <div class="form-group">
+                    <label class="form-label">Motif de rejet <span class="text-surface-500 font-normal">(optionnel)</span></label>
+                    <textarea x-model="rejectModal.reason" rows="3" class="form-input" placeholder="Ex : Documents manquants, catégorie incorrecte…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="rejectModal.open=false" class="btn btn-secondary">Annuler</button>
+                <button @click="confirmReject()" :disabled="rejectModal.saving" class="btn btn-danger">
+                    <div x-show="rejectModal.saving" class="spinner w-4 h-4"></div>
+                    <span x-text="rejectModal.saving ? 'Rejet…' : 'Confirmer le rejet'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Blog post modal --}}
     <div x-show="postModal.open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="modal-backdrop" @keydown.escape.window="postModal.open=false" style="display:none">
         <div @click.stop class="modal max-w-3xl">
@@ -1181,6 +1222,7 @@ function technicalDashboard() {
         selected: [],
         athleteModal: { open: false, editing: false, saving: false },
         athleteForm: {},
+        rejectModal: { open: false, saving: false, athleteId: null, name: '', reason: '' },
 
         // ── Events tab ──────────────────────────────────────────────────────
         eventsLoading: false, eventSearch: '',
@@ -1319,6 +1361,15 @@ function technicalDashboard() {
             return [...new Set(all)].sort((a, b) => parseInt(a) - parseInt(b));
         },
 
+        // Weight categories for the athlete add/edit modal (reactive on athleteForm.age_category + athleteForm.gender)
+        get modalWeightOptions() {
+            const age    = this.athleteForm.age_category;
+            const gender = this.athleteForm.gender;
+            if (!age || !gender) return [];
+            const g = this.allCategories.find(c => c.age === age && c.gender === gender);
+            return g ? g.weights : [];
+        },
+
         // ════════════════════════════════════════════════════════════════════
         // STATS
         // ════════════════════════════════════════════════════════════════════
@@ -1440,7 +1491,19 @@ function technicalDashboard() {
         },
         async validateAthlete(id) {
             const res = await api.post(`/api/athletes/${id}/validate`);
-            if (res.success) { $store.toast.success(res.message); this.loadAthletes(); }
+            if (res.success) { $store.toast.success(res.message); this.loadAthletes(); this.loadStats(); }
+        },
+        openRejectModal(id, name) {
+            this.rejectModal = { open: true, saving: false, athleteId: id, name, reason: '' };
+        },
+        async confirmReject() {
+            this.rejectModal.saving = true;
+            try {
+                const res = await api.post(`/api/athletes/${this.rejectModal.athleteId}/reject`, { reason: this.rejectModal.reason });
+                if (res.success) { $store.toast.success(res.message); this.rejectModal.open = false; this.loadAthletes(); this.loadStats(); }
+                else $store.toast.error(res.message ?? 'Erreur lors du rejet.');
+            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
+            finally { this.rejectModal.saving = false; }
         },
         async deleteAthlete(id, name) {
             if (!confirm(`Supprimer ${name} ?`)) return;
