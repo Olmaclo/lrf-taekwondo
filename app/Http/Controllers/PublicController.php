@@ -199,8 +199,8 @@ class PublicController extends Controller
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
-        // Tirages visibles uniquement quand l'événement est en cours ou terminé
-        abort_unless(in_array($event->status, ['ongoing', 'finished'], true), 404);
+        // Tirages visibles dès que les inscriptions sont fermées (ou en cours / terminé)
+        abort_unless(in_array($event->status, ['closed', 'ongoing', 'finished'], true), 404);
 
         $ageOrder = ['Benjamin' => 1, 'Minime' => 2, 'Cadet' => 3, 'Junior' => 4, 'Senior' => 5];
 
