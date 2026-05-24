@@ -2,7 +2,7 @@
 
 <div style="background:#06060a;min-height:100vh;padding-top:80px;">
 
-{{-- ══ HERO ══════════════════════════════════════════════════════════════ --}}
+{{-- HERO --}}
 <div style="position:relative;overflow:hidden;border-bottom:1px solid rgba(245,158,11,0.1);">
     <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(245,158,11,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;"></div>
     <div style="position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:700px;height:340px;background:radial-gradient(ellipse,rgba(245,158,11,0.06) 0%,transparent 65%);pointer-events:none;"></div>
@@ -40,7 +40,7 @@
 </div>
 @else
 
-@php $roundLabels=[1=>'Finale',2=>'Demi-finales',3=>'Quarts de finale',4=>'Huitièmes',5=>'Seizièmes']; @endphp
+@php $roundLabels=[1=>'Finale',2=>'Demi-finales',3=>'Quarts',4=>'Huitièmes',5=>'1er Tour']; @endphp
 
 <div style="padding:5rem 0 8rem;">
 <div style="max-width:1400px;margin:0 auto;padding:0 2rem;">
@@ -49,8 +49,8 @@
 @foreach($draws as $draw)
 @php
     $drawNum++;
-    $genderLabel  = \App\Models\Athlete::genderLabel($draw->gender,$draw->age_category??'');
-    $genderColor  = $draw->gender==='M' ? '#60a5fa' : '#f472b6';
+    $genderLabel = \App\Models\Athlete::genderLabel($draw->gender,$draw->age_category??'');
+    $genderColor = $draw->gender==='M' ? '#60a5fa' : '#f472b6';
     $champion=null; $runnerUp=null;
     if(!$draw->use_pools && $draw->matches){
         $final=collect($draw->matches)->where('round',1)->first();
@@ -69,7 +69,7 @@
 
 <div style="margin-bottom:8rem;">
 
-    {{-- ── Category header ── --}}
+    {{-- Category header --}}
     <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:3rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.06);">
         <div style="font-family:'Space Grotesk',sans-serif;font-size:4rem;font-weight:900;color:rgba(245,158,11,0.06);line-height:1;flex-shrink:0;letter-spacing:-0.05em;user-select:none;">{{ str_pad($drawNum,2,'0',STR_PAD_LEFT) }}</div>
         <div>
@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    {{-- ── Champion banner ── --}}
+    {{-- Champion banner --}}
     @if($champion)
     <div style="position:relative;overflow:hidden;margin-bottom:2.5rem;">
         <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#f59e0b;"></div>
@@ -112,9 +112,7 @@
     </div>
     @endif
 
-    {{-- ══════════════════════════════════════════════════════════════════
-         DIRECT ELIMINATION — NFL-STYLE BRACKET
-    ═══════════════════════════════════════════════════════════════════════ --}}
+    {{-- ══ DIRECT ELIMINATION — BRACKET ══ --}}
     @if(!$draw->use_pools && $draw->matches)
     @php
         $allMatches     = collect($draw->matches);
@@ -126,43 +124,51 @@
         $maxRound  = $matchesByRound->keys()->max();
         $roundKeys = $matchesByRound->keys()->values()->toArray();
 
-        // NFL-style: simple slot bars
-        $bSlotW = 46;   // each athlete slot height (px)
-        $bGap   = 1;    // separator between the two slots
-        $bCardH = $bSlotW * 2 + $bGap; // total match card height = 93px
-        $bCardW = 220;  // match card width (px)
-        $bConnW = 44;   // connector arm width (px)
-        $bBaseH = 96;   // base slot-container height (must >= $bCardH)
-        $bHdrH  = 50;   // round header height (px)
-        $lineC  = 'rgba(245,158,11,0.5)';
+        // Slot dimensions
+        $slotH  = 56;   // height of each athlete slot (px)
+        $divH   = 2;    // divider between the two slots
+        $cardH  = $slotH * 2 + $divH; // total match card height = 114px
+        $cardW  = 240;  // match card width (px)
+        $connW  = 48;   // connector arm width (px)
+        $hdrH   = 52;   // round header height (px)
+        $lc     = 'rgba(245,158,11,0.65)';  // line color
+        $lw     = '3';                       // line width px
     @endphp
 
     <div style="overflow-x:auto;padding-bottom:1.5rem;-webkit-overflow-scrolling:touch;">
-    <div style="display:inline-flex;align-items:flex-start;min-width:max-content;">
+    <div style="display:inline-flex;align-items:flex-start;gap:0;min-width:max-content;">
 
     @foreach($matchesByRound as $round => $roundMatches)
     @php
         $loopIdx    = array_search($round, $roundKeys);
         $isFirst    = ($loopIdx === 0);
         $isLast     = ($round === 1);
-        $containerH = (int) round($bBaseH * pow(2, $maxRound - $round));
+        $containerH = (int) round(($slotH * 2 + $divH + 2) * pow(2, $maxRound - $round));
         $matchesArr = $roundMatches->sortBy('position')->values();
-        $roundLabel = $roundLabels[$round] ?? ($round===$maxRound ? 'Premier tour' : "Tour {$round}");
-        $colW       = $bCardW + ($isFirst ? 0 : $bConnW) + ($isLast ? 0 : $bConnW);
+        $roundLabel = $roundLabels[$round] ?? ($round===$maxRound ? '1er Tour' : "Tour {$round}");
+        $colW       = $cardW + ($isFirst ? 0 : $connW) + ($isLast ? 0 : $connW);
     @endphp
 
     <div style="display:flex;flex-direction:column;flex-shrink:0;">
 
         {{-- Round header --}}
-        <div style="width:{{ $colW }}px;height:{{ $bHdrH }}px;display:flex;align-items:center;justify-content:center;">
-            <div style="padding:5px 16px;background:{{ $isLast ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.03)' }};border:1px solid {{ $isLast ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.08)' }};display:flex;align-items:center;gap:7px;">
-                @if($isLast)<svg style="width:10px;height:10px;color:#f59e0b;" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endif
-                <span style="font-size:0.57rem;font-weight:800;color:{{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.3)' }};text-transform:uppercase;letter-spacing:0.24em;font-family:'Space Grotesk',sans-serif;">{{ $roundLabel }}</span>
+        <div style="width:{{ $colW }}px;height:{{ $hdrH }}px;display:flex;align-items:center;justify-content:center;padding:0 {{ $isFirst ? 0 : $connW }}px 0 {{ $isLast ? 0 : $connW }}px;">
+            <div style="
+                padding:6px 18px;
+                background:{{ $isLast ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)' }};
+                border-top:{{ $isLast ? "3px solid #f59e0b" : "2px solid rgba(255,255,255,0.1)" }};
+                border-left:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
+                border-right:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
+                border-bottom:1px solid {{ $isLast ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)' }};
+                display:flex;align-items:center;gap:7px;
+            ">
+                @if($isLast)<svg style="width:11px;height:11px;color:#f59e0b;" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>@endif
+                <span style="font-size:0.6rem;font-weight:800;color:{{ $isLast ? '#f59e0b' : 'rgba(255,255,255,0.4)' }};text-transform:uppercase;letter-spacing:0.22em;font-family:'Space Grotesk',sans-serif;">{{ $roundLabel }}</span>
             </div>
         </div>
 
-        {{-- Match slots --}}
-        @foreach($matchesArr as $match)
+        {{-- Matches --}}
+        @foreach($matchesArr as $mIdx => $match)
         @php
             $a1  = $match['athlete1'] ?? null;
             $a2  = $match['athlete2'] ?? null;
@@ -173,101 +179,105 @@
             $ph2 = !empty($a2['placeholder']);
             $pos = (int)($match['position'] ?? 1);
             $isTopOfPair = ($pos % 2 !== 0);
-            $hasWinner = (bool)$wid;
+            $hasWinner   = (bool)$wid;
+            $seed1 = $a1['seed'] ?? null;
+            $seed2 = $a2['seed'] ?? null;
         @endphp
 
         <div style="height:{{ $containerH }}px;width:{{ $colW }}px;position:relative;display:flex;align-items:center;">
 
-            {{-- Left connector: horizontal line in from previous round --}}
+            {{-- Left connector: horizontal line from previous round --}}
             @if(!$isFirst)
-            <div style="width:{{ $bConnW }}px;height:2px;background:{{ $lineC }};flex-shrink:0;"></div>
+            <div style="width:{{ $connW }}px;height:{{ $lw }}px;background:{{ $lc }};flex-shrink:0;"></div>
             @endif
 
-            {{-- ═══ MATCH CARD — two stacked slot bars ═══ --}}
+            {{-- MATCH CARD --}}
             <div style="
-                width:{{ $bCardW }}px;flex-shrink:0;overflow:hidden;
-                border:1px solid {{ $isLast ? 'rgba(245,158,11,0.5)' : ($hasWinner ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)') }};
-                box-shadow:{{ $isLast ? '0 0 32px rgba(245,158,11,0.08)' : 'none' }};
+                width:{{ $cardW }}px;flex-shrink:0;
+                border:{{ $isLast ? "2px solid rgba(245,158,11,0.5)" : "1px solid rgba(255,255,255,0.13)" }};
+                box-shadow:{{ $isLast ? '0 0 40px rgba(245,158,11,0.10)' : 'none' }};
+                overflow:hidden;
             ">
-                {{-- ── Slot Athlete 1 ── --}}
-                <div style="
-                    height:{{ $bSlotW }}px;
-                    display:flex;align-items:center;
-                    border-bottom:{{ $bGap }}px solid rgba(255,255,255,0.06);
-                    background:{{ $a1w ? 'rgba(245,158,11,0.14)' : ($hasWinner && !$a1w ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.03)') }};
-                    position:relative;overflow:hidden;
-                ">
-                    {{-- Left accent bar --}}
-                    <div style="width:4px;height:100%;flex-shrink:0;background:{{ $a1w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.08)' : $genderColor) }};opacity:{{ $a1w ? '1' : ($hasWinner ? '0.4' : '0.6') }};"></div>
 
-                    <div style="flex:1;min-width:0;padding:0 10px;">
+                {{-- Athlete 1 slot --}}
+                @php
+                    $bg1 = $a1w ? '#1c1200' : ($hasWinner && !$a1w ? '#080810' : '#0e0e18');
+                    $tc1 = $a1w ? '#f59e0b' : ($hasWinner && !$a1w ? 'rgba(255,255,255,0.22)' : ($ph1 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.88)'));
+                    $fw1 = $a1w ? '800' : ($hasWinner && !$a1w ? '400' : '600');
+                    $ac1 = $a1w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.1)' : $genderColor);
+                @endphp
+                <div style="height:{{ $slotH }}px;display:flex;align-items:center;background:{{ $bg1 }};border-bottom:{{ $divH }}px solid #06060a;position:relative;">
+                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $ac1 }};{{ $a1w ? '' : ($hasWinner ? 'opacity:0.35;' : 'opacity:0.7;') }}"></div>
+                    @if($seed1 !== null && !$ph1 && $a1)
+                    <div style="width:26px;text-align:center;flex-shrink:0;font-size:0.6rem;font-weight:800;color:{{ $a1w ? '#f59e0b' : 'rgba(255,255,255,0.2)' }};font-family:'Space Grotesk',sans-serif;">{{ $seed1 }}</div>
+                    @endif
+                    <div style="flex:1;min-width:0;padding:0 10px 0 {{ $seed1 !== null && !$ph1 && $a1 ? '0' : '10' }}px;">
                         @if($a1 && !$ph1)
-                            <div style="font-size:0.78rem;font-weight:{{ $a1w ? '800' : '500' }};color:{{ $a1w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.9)') }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.01em;">{{ $a1['name']??'' }}</div>
-                            @if(!empty($a1['club']))<div style="font-size:0.52rem;color:{{ $a1w ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.18)' }};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a1['club'] }}</div>@endif
+                            <div style="font-size:0.82rem;font-weight:{{ $fw1 }};color:{{ $tc1 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.02em;">{{ $a1['name']??'' }}</div>
+                            @if(!empty($a1['club']) && !$hasWinner)<div style="font-size:0.53rem;color:rgba(255,255,255,0.2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a1['club'] }}</div>@endif
                         @elseif($a1 && $ph1)
-                            <div style="font-size:0.7rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a1['name'] }}</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a1['name'] }}</div>
                         @else
-                            <div style="font-size:0.62rem;color:rgba(255,255,255,0.12);letter-spacing:0.1em;font-family:'Space Grotesk',sans-serif;">— BYE —</div>
+                            <div style="font-size:0.6rem;color:rgba(255,255,255,0.1);letter-spacing:0.14em;font-family:'Space Grotesk',sans-serif;">BYE</div>
                         @endif
                     </div>
-
                     @if($a1w)
-                    <svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <svg style="width:14px;height:14px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                     @endif
                 </div>
 
-                {{-- ── Slot Athlete 2 ── --}}
-                <div style="
-                    height:{{ $bSlotW }}px;
-                    display:flex;align-items:center;
-                    background:{{ $a2w ? 'rgba(245,158,11,0.14)' : ($hasWinner && !$a2w ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.03)') }};
-                    position:relative;overflow:hidden;
-                ">
-                    <div style="width:4px;height:100%;flex-shrink:0;background:{{ $a2w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.08)' : $genderColor) }};opacity:{{ $a2w ? '1' : ($hasWinner ? '0.4' : '0.6') }};"></div>
-
-                    <div style="flex:1;min-width:0;padding:0 10px;">
+                {{-- Athlete 2 slot --}}
+                @php
+                    $bg2 = $a2w ? '#1c1200' : ($hasWinner && !$a2w ? '#080810' : '#0e0e18');
+                    $tc2 = $a2w ? '#f59e0b' : ($hasWinner && !$a2w ? 'rgba(255,255,255,0.22)' : ($ph2 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.88)'));
+                    $fw2 = $a2w ? '800' : ($hasWinner && !$a2w ? '400' : '600');
+                    $ac2 = $a2w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.1)' : $genderColor);
+                @endphp
+                <div style="height:{{ $slotH }}px;display:flex;align-items:center;background:{{ $bg2 }};position:relative;">
+                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $ac2 }};{{ $a2w ? '' : ($hasWinner ? 'opacity:0.35;' : 'opacity:0.7;') }}"></div>
+                    @if($seed2 !== null && !$ph2 && $a2)
+                    <div style="width:26px;text-align:center;flex-shrink:0;font-size:0.6rem;font-weight:800;color:{{ $a2w ? '#f59e0b' : 'rgba(255,255,255,0.2)' }};font-family:'Space Grotesk',sans-serif;">{{ $seed2 }}</div>
+                    @endif
+                    <div style="flex:1;min-width:0;padding:0 10px 0 {{ $seed2 !== null && !$ph2 && $a2 ? '0' : '10' }}px;">
                         @if($a2 && !$ph2)
-                            <div style="font-size:0.78rem;font-weight:{{ $a2w ? '800' : '500' }};color:{{ $a2w ? '#f59e0b' : ($hasWinner ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.9)') }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.01em;">{{ $a2['name']??'' }}</div>
-                            @if(!empty($a2['club']))<div style="font-size:0.52rem;color:{{ $a2w ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.18)' }};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a2['club'] }}</div>@endif
+                            <div style="font-size:0.82rem;font-weight:{{ $fw2 }};color:{{ $tc2 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:0.02em;">{{ $a2['name']??'' }}</div>
+                            @if(!empty($a2['club']) && !$hasWinner)<div style="font-size:0.53rem;color:rgba(255,255,255,0.2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.06em;">{{ $a2['club'] }}</div>@endif
                         @elseif($a2 && $ph2)
-                            <div style="font-size:0.7rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a2['name'] }}</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);font-style:italic;font-family:'Space Grotesk',sans-serif;">{{ $a2['name'] }}</div>
                         @else
-                            <div style="font-size:0.62rem;color:rgba(255,255,255,0.12);letter-spacing:0.1em;font-family:'Space Grotesk',sans-serif;">— BYE —</div>
+                            <div style="font-size:0.6rem;color:rgba(255,255,255,0.1);letter-spacing:0.14em;font-family:'Space Grotesk',sans-serif;">BYE</div>
                         @endif
                     </div>
-
                     @if($a2w)
-                    <svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <svg style="width:14px;height:14px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                     @endif
                 </div>
+
             </div>
             {{-- end match card --}}
 
-            {{-- Right bracket arm (L-shape toward next round) --}}
+            {{-- Right L-shaped bracket arm --}}
             @if(!$isLast)
             <div style="
-                position:absolute;right:0;width:{{ $bConnW }}px;
+                position:absolute;right:0;width:{{ $connW }}px;
                 {{ $isTopOfPair
-                    ? "top:50%;height:50%;border-top:2px solid {$lineC};border-right:2px solid {$lineC};"
-                    : "top:0;height:50%;border-bottom:2px solid {$lineC};border-right:2px solid {$lineC};"
+                    ? "top:50%;height:50%;border-top:{$lw}px solid {$lc};border-right:{$lw}px solid {$lc};"
+                    : "top:0;height:50%;border-bottom:{$lw}px solid {$lc};border-right:{$lw}px solid {$lc};"
                 }}
             "></div>
             @endif
 
         </div>
-        @endforeach {{-- matches in round --}}
+        @endforeach
 
     </div>
-    @endforeach {{-- rounds --}}
+    @endforeach
 
     </div>{{-- inline-flex --}}
     </div>{{-- overflow-x --}}
     @endif
-    {{-- end direct elimination --}}
 
-    {{-- ══════════════════════════════════════════════════════════════════
-         POOLS
-    ═══════════════════════════════════════════════════════════════════════ --}}
+    {{-- ══ POOLS ══ --}}
     @if($draw->use_pools && $draw->pools)
     @php $pools=$draw->pools['pools']??[]; $finals=$draw->pools['finals']??[]; @endphp
 
@@ -322,13 +332,11 @@
             <div style="width:22px;height:2px;background:#f59e0b;"></div>
             <span style="font-size:0.56rem;font-weight:700;color:rgba(245,158,11,0.65);text-transform:uppercase;letter-spacing:0.3em;font-family:'Space Grotesk',sans-serif;">Phase finale</span>
         </div>
-
-        {{-- Pool finals as NFL-style mini brackets --}}
         <div style="display:flex;flex-wrap:wrap;gap:3rem;align-items:flex-start;">
         @php $finalsByPhase=collect($finals)->groupBy('pool'); @endphp
         @foreach($finalsByPhase as $phase => $phaseMatches)
-        <div style="min-width:240px;">
-            <div style="font-size:0.54rem;font-weight:700;color:{{ $phase==='FINALE'?'#f59e0b':'rgba(255,255,255,0.28)' }};text-transform:uppercase;letter-spacing:0.22em;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(245,158,11,{{ $phase==='FINALE'?'0.25':'0.06' }});font-family:'Space Grotesk',sans-serif;">{{ $phase }}</div>
+        <div style="min-width:260px;">
+            <div style="font-size:0.54rem;font-weight:700;color:{{ $phase==='FINALE'?'#f59e0b':'rgba(255,255,255,0.28)' }};text-transform:uppercase;letter-spacing:0.22em;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:{{ $phase==='FINALE'?'2px solid rgba(245,158,11,0.4)':'1px solid rgba(255,255,255,0.06)' }};font-family:'Space Grotesk',sans-serif;">{{ $phase }}</div>
             @foreach($phaseMatches as $match)
             @php
                 $a1=$match['athlete1']??null; $a2=$match['athlete2']??null; $wid=$match['winner_id']??null;
@@ -337,16 +345,16 @@
                 $a2w=$wid&&$a2&&!$ph2&&($a2['id']??null)==$wid;
                 $hw=(bool)$wid;
             @endphp
-            <div style="border:1px solid rgba(245,158,11,{{ $phase==='FINALE'?'0.3':'0.08' }});overflow:hidden;margin-bottom:0.5rem;box-shadow:{{ $phase==='FINALE'?'0 0 20px rgba(245,158,11,0.06)':'none' }};">
-                <div style="height:44px;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);background:{{ $a1w?'rgba(245,158,11,0.12)':($hw?'rgba(0,0,0,0.15)':'rgba(255,255,255,0.02)') }};">
-                    <div style="width:4px;height:100%;flex-shrink:0;background:{{ $a1w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.3)':$genderColor) }};opacity:{{ $a1w?'1':'0.5' }};"></div>
-                    <span style="flex:1;padding:0 10px;font-size:0.76rem;font-weight:{{ $a1w?'800':'400' }};color:{{ $a1w?'#f59e0b':($ph1?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.22)':'rgba(255,255,255,0.78)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a1['name']??'—' }}</span>
-                    @if($a1w)<svg style="width:12px;height:12px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
+            <div style="border:{{ $phase==='FINALE' ? '2px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)' }};overflow:hidden;margin-bottom:0.5rem;box-shadow:{{ $phase==='FINALE'?'0 0 24px rgba(245,158,11,0.08)':'none' }};">
+                <div style="height:52px;display:flex;align-items:center;border-bottom:2px solid #06060a;background:{{ $a1w?'#1c1200':($hw?'#080810':'#0e0e18') }};">
+                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $a1w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.4)':$genderColor) }};{{ $a1w?'':'opacity:0.6;' }}"></div>
+                    <span style="flex:1;padding:0 12px;font-size:0.8rem;font-weight:{{ $a1w?'800':'500' }};color:{{ $a1w?'#f59e0b':($ph1?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.85)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a1['name']??'—' }}</span>
+                    @if($a1w)<svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
                 </div>
-                <div style="height:44px;display:flex;align-items:center;background:{{ $a2w?'rgba(245,158,11,0.12)':($hw?'rgba(0,0,0,0.15)':'rgba(255,255,255,0.02)') }};">
-                    <div style="width:4px;height:100%;flex-shrink:0;background:{{ $a2w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.3)':$genderColor) }};opacity:{{ $a2w?'1':'0.5' }};"></div>
-                    <span style="flex:1;padding:0 10px;font-size:0.76rem;font-weight:{{ $a2w?'800':'400' }};color:{{ $a2w?'#f59e0b':($ph2?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.22)':'rgba(255,255,255,0.78)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a2['name']??'—' }}</span>
-                    @if($a2w)<svg style="width:12px;height:12px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
+                <div style="height:52px;display:flex;align-items:center;background:{{ $a2w?'#1c1200':($hw?'#080810':'#0e0e18') }};">
+                    <div style="width:6px;height:100%;flex-shrink:0;background:{{ $a2w?'#f59e0b':($phase==='FINALE'?'rgba(245,158,11,0.4)':$genderColor) }};{{ $a2w?'':'opacity:0.6;' }}"></div>
+                    <span style="flex:1;padding:0 12px;font-size:0.8rem;font-weight:{{ $a2w?'800':'500' }};color:{{ $a2w?'#f59e0b':($ph2?'rgba(255,255,255,0.2)':($hw?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.85)')) }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;font-family:'Space Grotesk',sans-serif;">{{ $a2['name']??'—' }}</span>
+                    @if($a2w)<svg style="width:13px;height:13px;color:#f59e0b;flex-shrink:0;margin-right:10px;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>@endif
                 </div>
             </div>
             @endforeach
@@ -356,9 +364,8 @@
     </div>
     @endif
     @endif
-    {{-- end pools --}}
 
-</div>{{-- category section --}}
+</div>
 @endforeach
 
 </div>
