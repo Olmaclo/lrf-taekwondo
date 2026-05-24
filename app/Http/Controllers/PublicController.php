@@ -285,7 +285,7 @@ class PublicController extends Controller
 
         $ageCategory = $this->categories->getAgeCategoryFromAge($age);
         if (! $ageCategory) {
-            return back()->withErrors(['birth_date' => "L'âge minimum de participation est 8 ans (catégorie Benjamin)."])->withInput();
+            return back()->withErrors(['birth_date' => "L'âge minimum de participation est 10 ans (catégorie Minime)."])->withInput();
         }
 
         $validWeightCategories = $this->categories->getWeightCategories($ageCategory, $data['gender']);

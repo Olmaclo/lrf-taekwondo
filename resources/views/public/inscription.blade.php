@@ -425,8 +425,8 @@ function tkdUpdateCategories() {
         ageDisplay.value = ageCategory;
         ageDisplay.style.color = '#f59e0b';
         ageInput.value = ageCategory;
-    } else if (age !== null && age < 8) {
-        ageDisplay.value = 'Non éligible (âge minimum : 8 ans)';
+    } else if (age !== null && age < 10) {
+        ageDisplay.value = 'Non éligible (âge minimum : 10 ans)';
         ageDisplay.style.color = '#ef4444';
         ageInput.value = '';
     } else {
