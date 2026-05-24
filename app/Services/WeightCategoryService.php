@@ -5,19 +5,19 @@ namespace App\Services;
 class WeightCategoryService
 {
     private array $ageCategories = [
-        'Benjamin' => ['min' => 8,  'max' => 9],
-        'Cadet'    => ['min' => 12, 'max' => 14],
-        'Junior'   => ['min' => 15, 'max' => 17],
-        'Senior'   => ['min' => 18, 'max' => 99],
+        'Minime' => ['min' => 10, 'max' => 11],
+        'Cadet'  => ['min' => 12, 'max' => 14],
+        'Junior' => ['min' => 15, 'max' => 17],
+        'Senior' => ['min' => 18, 'max' => 99],
     ];
 
     // Gender keys are 'M' and 'F' throughout.
     // Lower bound of the first category in each group is 0 so that any weight
     // below the nominal floor is still correctly assigned to the lightest class.
     private array $weightCategories = [
-        'Benjamin' => [
-            'M' => ['-21kg'=>[0,21],'-24kg'=>[21,24],'-27kg'=>[24,27],'-30kg'=>[27,30],'-33kg'=>[30,33],'-37kg'=>[33,37],'-41kg'=>[37,41],'-45kg'=>[41,45],'-49kg'=>[45,49],'+49kg'=>[49,999]],
-            'F' => ['-17kg'=>[0,17],'-20kg'=>[17,20],'-23kg'=>[20,23],'-26kg'=>[23,26],'-29kg'=>[26,29],'-33kg'=>[29,33],'-37kg'=>[33,37],'-41kg'=>[37,41],'-44kg'=>[41,44],'+44kg'=>[44,999]],
+        'Minime' => [
+            'M' => ['-27kg'=>[0,27],'-30kg'=>[27,30],'-33kg'=>[30,33],'-37kg'=>[33,37],'-41kg'=>[37,41],'-45kg'=>[41,45],'-49kg'=>[45,49],'-53kg'=>[49,53],'-57kg'=>[53,57],'+57kg'=>[57,999]],
+            'F' => ['-23kg'=>[0,23],'-26kg'=>[23,26],'-29kg'=>[26,29],'-33kg'=>[29,33],'-37kg'=>[33,37],'-41kg'=>[37,41],'-44kg'=>[41,44],'-47kg'=>[44,47],'-51kg'=>[47,51],'+51kg'=>[51,999]],
         ],
         'Cadet' => [
             'M' => ['-33kg'=>[0,33],'-37kg'=>[33,37],'-41kg'=>[37,41],'-45kg'=>[41,45],'-49kg'=>[45,49],'-53kg'=>[49,53],'-57kg'=>[53,57],'-61kg'=>[57,61],'-65kg'=>[61,65],'+65kg'=>[65,999]],

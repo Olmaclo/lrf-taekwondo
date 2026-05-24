@@ -60,8 +60,8 @@ it('returns full nested structure when called with no arguments', function () {
     expect($all)->toHaveKey('Senior');
     expect($all)->toHaveKey('Junior');
     expect($all)->toHaveKey('Cadet');
-    expect($all)->toHaveKey('Benjamin');
-    expect($all)->not->toHaveKey('Minime');
+    expect($all)->toHaveKey('Minime');
+    expect($all)->not->toHaveKey('Benjamin');
 });
 
 // ── getAgeCategoryFromAge ─────────────────────────────────────────────────────
@@ -78,13 +78,17 @@ it('maps age 13 to Cadet', function () {
     expect($this->svc->getAgeCategoryFromAge(13))->toBe('Cadet');
 });
 
-it('returns null for age 10-11 (Minime supprimé)', function () {
-    expect($this->svc->getAgeCategoryFromAge(10))->toBeNull();
-    expect($this->svc->getAgeCategoryFromAge(11))->toBeNull();
+it('maps age 10 to Minime', function () {
+    expect($this->svc->getAgeCategoryFromAge(10))->toBe('Minime');
 });
 
-it('maps age 9 to Benjamin', function () {
-    expect($this->svc->getAgeCategoryFromAge(9))->toBe('Benjamin');
+it('maps age 11 to Minime', function () {
+    expect($this->svc->getAgeCategoryFromAge(11))->toBe('Minime');
+});
+
+it('returns null for age 8-9 (Benjamin supprimé)', function () {
+    expect($this->svc->getAgeCategoryFromAge(8))->toBeNull();
+    expect($this->svc->getAgeCategoryFromAge(9))->toBeNull();
 });
 
 it('returns null for athlete too young (age < 8)', function () {
@@ -97,7 +101,7 @@ it('assigns -54kg to a 50kg senior male', function () {
     expect($this->svc->getWeightCategoryFromWeight(50.0, 'Senior', 'M'))->toBe('-54kg');
 });
 
-it('assigns -54kg to a very light senior male (10kg)', function () {
+it('assigns -54kg to a very light senior male', function () {
     expect($this->svc->getWeightCategoryFromWeight(10.0, 'Senior', 'M'))->toBe('-54kg');
 });
 
@@ -111,6 +115,14 @@ it('finds correct weight category -57kg for 56kg senior female', function () {
 
 it('assigns -46kg to a very light senior female', function () {
     expect($this->svc->getWeightCategoryFromWeight(10.0, 'Senior', 'F'))->toBe('-46kg');
+});
+
+it('assigns -27kg to a very light minime male', function () {
+    expect($this->svc->getWeightCategoryFromWeight(15.0, 'Minime', 'M'))->toBe('-27kg');
+});
+
+it('assigns -23kg to a very light minime female', function () {
+    expect($this->svc->getWeightCategoryFromWeight(15.0, 'Minime', 'F'))->toBe('-23kg');
 });
 
 it('assigns -45kg to a very light junior male', function () {
