@@ -13,6 +13,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\DeployController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\RankingController;
@@ -21,6 +22,11 @@ use Illuminate\Support\Facades\Route;
 
 // ── Sitemap ────────────────────────────────────────────────────────────────────
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+
+// ── Deploy webhook (post-FTP artisan commands, protégé par secret header) ─────
+Route::post('/webhook/deploy', [\App\Http\Controllers\DeployController::class, 'hook'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->name('webhook.deploy');
 
 // ── Public ─────────────────────────────────────────────────────────────────────
 Route::get('/',                        [PublicController::class, 'home'])->name('public.home');
