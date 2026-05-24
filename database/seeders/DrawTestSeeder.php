@@ -60,10 +60,20 @@ class DrawTestSeeder extends Seeder
             $coaches[$club] = $c;
         }
 
-        // ── Test event ─────────────────────────────────────────────────────────
-        $event = Event::firstOrCreate(
-            ['slug' => 'championnat-test-tirages-2025'],
-            [
+        // ── Test event (withTrashed pour gérer le soft delete) ────────────────
+        $event = Event::withTrashed()->where('slug', 'championnat-test-tirages-2025')->first();
+        if ($event) {
+            if ($event->trashed()) {
+                $event->restore();
+            }
+            $event->update([
+                'status'     => 'ongoing',
+                'start_date' => now()->subDay()->format('Y-m-d'),
+                'end_date'   => now()->addDay()->format('Y-m-d'),
+            ]);
+        } else {
+            $event = Event::create([
+                'slug'             => 'championnat-test-tirages-2025',
                 'name'             => 'Championnat Test — Tirages 2025',
                 'type'             => 'kyorugi',
                 'status'           => 'ongoing',
@@ -72,8 +82,8 @@ class DrawTestSeeder extends Seeder
                 'location'         => 'Dakar Arena, Dakar',
                 'registration_fee' => 5000,
                 'description'      => 'Événement de test pour visualiser les brackets de tirage.',
-            ]
-        );
+            ]);
+        }
 
         // ── Catégorie 1 : Senior Masculin -80kg — 45 athlètes (4 poules) ──────
         $seniorM80 = [
