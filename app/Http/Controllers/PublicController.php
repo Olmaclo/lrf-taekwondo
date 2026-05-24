@@ -199,8 +199,10 @@ class PublicController extends Controller
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
-        // Tirages visibles dès que les inscriptions sont fermées (ou en cours / terminé)
-        abort_unless(in_array($event->status, ['closed', 'ongoing', 'finished'], true), 404);
+        // Draws not yet released — show a "coming soon" page instead of 404
+        if (! in_array($event->status, ['closed', 'ongoing', 'finished'], true)) {
+            return view('public.draws-unavailable', compact('event'));
+        }
 
         $ageOrder = ['Minime' => 1, 'Cadet' => 2, 'Junior' => 3, 'Senior' => 4];
 
