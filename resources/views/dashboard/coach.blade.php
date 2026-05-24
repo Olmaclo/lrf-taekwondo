@@ -89,10 +89,10 @@
                     @if($ev->registration_fee)
                         <span class="text-xs text-surface-400">{{ number_format($ev->registration_fee, 0, ',', ' ') }} FCFA</span>
                     @endif
-                    <button @click="openAddModal({{ $ev->id }})" class="btn btn-primary btn-sm">
+                    <a href="{{ route('public.inscription', ['event_id' => $ev->id]) }}" class="btn btn-primary btn-sm">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Inscrire
-                    </button>
+                    </a>
                 </div>
             </div>
             @endforeach
