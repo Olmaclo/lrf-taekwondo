@@ -69,14 +69,13 @@ class ExportController extends Controller
             ->when($request->registration_status, fn ($q) => $q->where('registration_status', $request->registration_status))
             ->orderBy('age_category')->orderBy('gender')->orderBy('weight_category')->orderBy('last_name');
 
-        $athletes = $query->get();
-
         $headers = [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="athletes-' . now()->format('Y-m-d') . '.csv"',
         ];
 
-        $callback = function () use ($athletes) {
+        // Streaming en lazy() : charge par lots, mémoire constante quel que soit le volume
+        $callback = function () use ($query) {
             $handle = fopen('php://output', 'w');
             fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
 
@@ -87,7 +86,7 @@ class ExportController extends Controller
                 'N° Reçu', 'Coach',
             ], ';');
 
-            foreach ($athletes as $a) {
+            foreach ($query->lazy() as $a) {
                 fputcsv($handle, [
                     $a->id,
                     $a->first_name,
