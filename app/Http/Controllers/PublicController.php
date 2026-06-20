@@ -7,6 +7,7 @@ use App\Models\BlogPost;
 use App\Models\Event;
 use App\Models\GalleryPhoto;
 use App\Models\Draw;
+use App\Models\LiveSession;
 use App\Models\Ranking;
 use App\Models\User;
 use App\Services\WeightCategoryService;
@@ -101,7 +102,20 @@ class PublicController extends Controller
 
         $photos = GalleryPhoto::where('event_id', $event->id)->latest()->limit(12)->get();
 
-        return view('public.event-detail', compact('event', 'categories', 'rankings', 'photos'));
+        // Direct en cours pour cet événement (pour l'encart « EN DIRECT »)
+        $liveSession = LiveSession::where('event_id', $event->id)->live()->latest()->first();
+
+        return view('public.event-detail', compact('event', 'categories', 'rankings', 'photos', 'liveSession'));
+    }
+
+    public function live(LiveSession $liveSession): View
+    {
+        // Consultable seulement si en cours (direct) ou terminé (replay)
+        abort_if($liveSession->status === 'scheduled', 404);
+
+        $liveSession->load('event');
+
+        return view('public.live', compact('liveSession'));
     }
 
     public function gallery(Request $request): View

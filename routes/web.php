@@ -13,6 +13,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\LiveSessionController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
@@ -29,6 +30,9 @@ Route::post('/webhook/deploy', [\App\Http\Controllers\DeployController::class, '
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
     ->middleware('throttle:10,1')
     ->name('webhook.deploy');
+
+// ── Direct / Live (page publique de visionnage) ──────────────────────────────
+Route::get('/direct/{liveSession}', [PublicController::class, 'live'])->name('public.live');
 
 // ── Public draw partial routes (AJAX — no auth required) ──────────────────────
 Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
@@ -123,6 +127,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/{draw}/set-winner',   [DrawController::class, 'setWinner'])->name('set-winner');
         Route::post('/{draw}/reset-winner', [DrawController::class, 'resetWinner'])->name('reset-winner');
         Route::post('/{draw}/repair',       [DrawController::class, 'repair'])->name('repair');
+    });
+
+    // ── Direct / Live (gestion admin) ──────────────────────────────────────────
+    Route::get('/dashboard/direct', [LiveSessionController::class, 'manage'])->name('live.manage');
+    Route::prefix('api/live')->name('api.live.')->group(function () {
+        Route::get('/',                 [LiveSessionController::class, 'index'])->name('index');
+        Route::post('/',                [LiveSessionController::class, 'store'])->name('store');
+        Route::put('/{liveSession}',    [LiveSessionController::class, 'update'])->name('update');
+        Route::post('/{liveSession}/start', [LiveSessionController::class, 'start'])->name('start');
+        Route::post('/{liveSession}/stop',  [LiveSessionController::class, 'stop'])->name('stop');
+        Route::delete('/{liveSession}', [LiveSessionController::class, 'destroy'])->name('destroy');
     });
 
     // ── Coaches ───────────────────────────────────────────────────────────────

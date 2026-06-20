@@ -38,9 +38,34 @@
     ],
 ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
 </script>
+<style>
+    .live-dot-banner { width: 7px; height: 7px; border-radius: 50%; background: #fff; display: inline-block; animation: liveDotBanner 1.6s infinite; }
+    @keyframes liveDotBanner {
+        0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
+        70%  { box-shadow: 0 0 0 7px rgba(255,255,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+</style>
 @endpush
 
 <div style="background: #000; min-height: 100vh; padding-top: 80px;">
+
+    @if($liveSession)
+    {{-- ── Bandeau EN DIRECT ──────────────────────────────────────────────── --}}
+    <a href="{{ route('public.live', $liveSession) }}"
+       style="display: block; text-decoration: none; background: linear-gradient(90deg, rgba(239,68,68,0.18) 0%, rgba(239,68,68,0.06) 50%, transparent 100%); border-bottom: 1px solid rgba(239,68,68,0.25);">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 1rem 2.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 8px; background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 12px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif;">
+                <span class="live-dot-banner"></span> En direct
+            </span>
+            <span style="color: #fff; font-weight: 600; font-size: 0.95rem; flex: 1; min-width: 200px;">{{ $liveSession->title }}</span>
+            <span style="display: inline-flex; align-items: center; gap: 7px; color: #f59e0b; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em;">
+                Regarder maintenant
+                <svg style="width: 13px; height: 13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </span>
+        </div>
+    </a>
+    @endif
 
     {{-- Hero --}}
     <div style="{{ $event->cover_image ? 'background: url(\'' . $event->cover_url . '\') center/cover no-repeat;' : 'background: #000;' }} padding: 4.5rem 0; position: relative; overflow: hidden;">

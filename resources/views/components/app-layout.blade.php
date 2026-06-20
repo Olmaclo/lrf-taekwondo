@@ -69,6 +69,12 @@
             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             <span :class="open ? '' : 'lg:hidden'">Coaches</span>
         </a>
+        @if(auth()->user()->isAdmin())
+        <a href="{{ route('live.manage') }}" class="nav-item {{ request()->routeIs('live.manage') ? 'active' : '' }}" title="Directs / Live">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/></svg>
+            <span :class="open ? '' : 'lg:hidden'" class="flex items-center gap-2">Directs <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></span></span>
+        </a>
+        @endif
         @endif
 
         @if(auth()->user()->isFinancial() || auth()->user()->isAdmin())
