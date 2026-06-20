@@ -33,7 +33,7 @@ jobs:
             -p "$SSH_PORT" \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
-            "cd /home/u600930908/domains/lrftaekwondo.com/laravel && php artisan db:seed --class=${{ github.event.inputs.seeder }} --force"
+            "cd /home/u600930908/domains/lrftaekwondo.com/public_html && php artisan db:seed --class=${{ github.event.inputs.seeder }} --force"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
