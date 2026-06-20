@@ -38,6 +38,8 @@ class DeployController extends Controller
             'events:auto-finish' => ['events:auto-finish', []],
             // Traite la file d'attente (emails) puis s'arrête quand elle est vide.
             'queue:flush'        => ['queue:work', ['--stop-when-empty' => true, '--max-time' => 30, '--tries' => 3]],
+            // Applique les migrations en attente (le déploiement Git ne migre pas).
+            'migrate'            => ['migrate', ['--force' => true]],
         ];
         $command = (string) ($request->input('command') ?? '');
         if ($command !== '' && isset($allowed[$command])) {
