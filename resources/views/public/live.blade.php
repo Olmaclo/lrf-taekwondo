@@ -41,7 +41,7 @@
     <div style="max-width: 1400px; margin: 0 auto; padding: 1.75rem 2.5rem 5rem; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.75rem;" id="live-grid">
 
         {{-- Lecteur --}}
-        <div>
+        <div x-data="liveReactions({{ $liveSession->id }}, {{ $isLive ? 'true' : 'false' }})" x-init="init()">
             <div style="position: relative; aspect-ratio: 16/9; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6);">
                 <iframe
                     src="{{ $liveSession->embed_url }}"
@@ -50,7 +50,22 @@
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen></iframe>
+                {{-- Couche des réactions flottantes --}}
+                <div x-ref="reactionLayer" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 5;"></div>
             </div>
+
+            @if($isLive)
+            {{-- Barre de réactions --}}
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
+                <span style="color: rgba(255,255,255,0.3); font-size: 0.72rem; margin-right: 2px;">Réagis :</span>
+                <template x-for="e in emojis" :key="e">
+                    <button @click="react(e)" x-text="e"
+                            style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 5px 9px; font-size: 1.05rem; cursor: pointer; transition: transform 0.1s, background 0.2s; line-height: 1;"
+                            onmouseover="this.style.background='rgba(245,158,11,0.15)'; this.style.transform='scale(1.18)'"
+                            onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.transform='scale(1)'"></button>
+                </template>
+            </div>
+            @endif
 
             {{-- Infos sous la vidéo --}}
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.25rem; padding: 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.07);">
@@ -162,6 +177,11 @@
     }
     .chat-mod-tools { position: absolute; top: 0; right: 0; display: none; gap: 4px; background: rgba(10,10,10,0.85); padding: 2px; border-radius: 7px; }
     .chat-msg:hover .chat-mod-tools { display: flex; }
+    @keyframes floatReaction {
+        0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+        12%  { opacity: 1; transform: translateY(-12px) scale(1.15); }
+        100% { transform: translateY(-230px) translateX(var(--drift, 0)) scale(0.85); opacity: 0; }
+    }
 </style>
 @endpush
 
@@ -276,6 +296,42 @@ window.liveChat = function (sessionId, isLive, canModerate) {
             for (let i = 0; i < (name || '').length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
             const palette = ['#f59e0b','#ef4444','#3b82f6','#10b981','#a855f7','#ec4899','#06b6d4','#f97316','#84cc16'];
             return palette[Math.abs(h) % palette.length];
+        },
+    };
+};
+
+window.liveReactions = function (sessionId, isLive) {
+    return {
+        sessionId, isLive,
+        emojis: ['❤️','👏','🔥','😮','😂','🥋','💪','🎉'],
+
+        init() {
+            if (window.Echo) {
+                window.Echo.channel('live.' + this.sessionId)
+                    .listen('.reaction', (e) => this.spawn(e.emoji));
+            }
+        },
+
+        spawn(emoji) {
+            const layer = this.$refs.reactionLayer;
+            if (!layer) return;
+            const el = document.createElement('div');
+            el.textContent = emoji;
+            const drift = (Math.random() * 70 - 35).toFixed(0);
+            el.style.cssText = `position:absolute; bottom:8px; left:${(8 + Math.random()*78).toFixed(1)}%; font-size:${(1.3 + Math.random()*0.9).toFixed(2)}rem; pointer-events:none; --drift:${drift}px; animation: floatReaction 2.6s ease-out forwards; will-change: transform, opacity;`;
+            layer.appendChild(el);
+            setTimeout(() => el.remove(), 2700);
+        },
+
+        async react(emoji) {
+            this.spawn(emoji);
+            try {
+                await fetch(`/direct/${this.sessionId}/reaction`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body: JSON.stringify({ emoji }),
+                });
+            } catch (e) {}
         },
     };
 };

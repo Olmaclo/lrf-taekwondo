@@ -80,3 +80,18 @@ it('strips html tags from pseudo and message', function () {
         'message' => 'hello alert(1)',
     ]);
 });
+
+// ── Réactions emoji ─────────────────────────────────────────────────────────────
+
+it('accepts a valid reaction during a live', function () {
+    $this->postJson("/direct/{$this->live->id}/reaction", ['emoji' => '🔥'])->assertOk();
+});
+
+it('rejects an invalid reaction emoji', function () {
+    $this->postJson("/direct/{$this->live->id}/reaction", ['emoji' => '💩'])->assertStatus(422);
+});
+
+it('rejects reactions when the live is not running', function () {
+    $ended = LiveSession::factory()->ended()->create(['event_id' => $this->event->id]);
+    $this->postJson("/direct/{$ended->id}/reaction", ['emoji' => '🔥'])->assertStatus(422);
+});

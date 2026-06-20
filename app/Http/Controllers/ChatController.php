@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\ChatMessageSent;
+use App\Events\ReactionSent;
 use App\Models\ChatMessage;
 use App\Models\LiveBan;
 use App\Models\LiveSession;
@@ -84,5 +85,33 @@ class ChatController extends Controller
                 'time'    => $chatMessage->created_at->format('H:i'),
             ],
         ], 201);
+    }
+
+    /**
+     * Réaction emoji éphémère (non stockée) — diffusée pour l'animation flottante.
+     */
+    public function react(Request $request, LiveSession $liveSession): JsonResponse
+    {
+        if (! $liveSession->isLive()) {
+            return response()->json(['success' => false], 422);
+        }
+
+        $emoji   = (string) $request->input('emoji');
+        $allowed = ['❤️', '👏', '🔥', '😮', '😂', '🥋', '💪', '🎉'];
+        if (! in_array($emoji, $allowed, true)) {
+            return response()->json(['success' => false], 422);
+        }
+
+        // Anti-flood : 5 réactions / 3 s par visiteur
+        $ipHash = hash('sha256', $request->ip() . config('app.key'));
+        $key    = "react:{$liveSession->id}:{$ipHash}";
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return response()->json(['success' => false], 429);
+        }
+        RateLimiter::hit($key, 3);
+
+        broadcast(new ReactionSent($liveSession->id, $emoji))->toOthers();
+
+        return response()->json(['success' => true]);
     }
 }

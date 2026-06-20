@@ -41,6 +41,8 @@ Route::get('/direct/{liveSession}',  [PublicController::class, 'live'])->name('p
 Route::get('/direct/{liveSession}/chat',  [ChatController::class, 'history'])->name('public.live.chat');
 Route::post('/direct/{liveSession}/chat', [ChatController::class, 'send'])
     ->middleware('throttle:40,1')->name('public.live.chat.send');
+Route::post('/direct/{liveSession}/reaction', [ChatController::class, 'react'])
+    ->middleware('throttle:120,1')->name('public.live.react');
 
 // ── Public draw partial routes (AJAX — no auth required) ──────────────────────
 Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
