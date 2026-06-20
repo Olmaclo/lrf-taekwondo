@@ -16,6 +16,7 @@ use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\LiveSessionController;
 use App\Http\Controllers\ModerationController;
+use App\Http\Controllers\PollController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
@@ -43,6 +44,11 @@ Route::post('/direct/{liveSession}/chat', [ChatController::class, 'send'])
     ->middleware('throttle:40,1')->name('public.live.chat.send');
 Route::post('/direct/{liveSession}/reaction', [ChatController::class, 'react'])
     ->middleware('throttle:120,1')->name('public.live.react');
+
+// ── Sondages du direct (consultation + vote, public) ──────────────────────────
+Route::get('/direct/{liveSession}/poll',               [PollController::class, 'current'])->name('public.live.poll');
+Route::post('/direct/{liveSession}/polls/{poll}/vote', [PollController::class, 'vote'])
+    ->middleware('throttle:20,1')->name('public.live.poll.vote');
 
 // ── Public draw partial routes (AJAX — no auth required) ──────────────────────
 Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
@@ -155,6 +161,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/direct/{liveSession}/messages/{message}/ban',    [ModerationController::class, 'banAuthor'])->name('live.mod.ban');
     Route::get('/api/live/moderators',                [ModerationController::class, 'moderators'])->name('live.mod.list');
     Route::post('/api/live/moderators/{user}/toggle', [ModerationController::class, 'toggleModerator'])->name('live.mod.toggle');
+
+    // ── Sondages (modérateur) ───────────────────────────────────────────────────
+    Route::post('/api/live/{liveSession}/polls',     [PollController::class, 'start'])->name('live.poll.start');
+    Route::post('/api/live/polls/{poll}/close',      [PollController::class, 'close'])->name('live.poll.close');
 
     // ── Coaches ───────────────────────────────────────────────────────────────
     Route::prefix('api/coaches')->name('api.coaches.')->group(function () {

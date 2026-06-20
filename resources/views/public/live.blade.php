@@ -67,6 +67,82 @@
             </div>
             @endif
 
+            {{-- ── Sondage en direct ──────────────────────────────────────────── --}}
+            <div x-data="livePoll({{ $liveSession->id }}, {{ $isLive ? 'true' : 'false' }}, {{ ($canModerate ?? false) ? 'true' : 'false' }})" x-init="init()" style="margin-top: 1.25rem;">
+
+                {{-- Modérateur : bouton lancer --}}
+                <template x-if="canModerate && isLive && !poll && !showForm">
+                    <button @click="showForm = true"
+                            style="display: inline-flex; align-items: center; gap: 7px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; font-weight: 600; font-size: 0.8rem; padding: 8px 14px; border-radius: 9px; cursor: pointer;">
+                        📊 Lancer un sondage
+                    </button>
+                </template>
+
+                {{-- Modérateur : formulaire --}}
+                <template x-if="canModerate && showForm">
+                    <div style="background: #0a0a0a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 8px;">
+                        <input x-model="form.question" maxlength="200" placeholder="Ta question…"
+                               style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 9px 12px; color: #fff; font-size: 0.85rem; outline: none;">
+                        <template x-for="(opt, i) in form.options" :key="i">
+                            <div style="display: flex; gap: 6px;">
+                                <input x-model="form.options[i]" maxlength="80" :placeholder="'Option ' + (i+1)"
+                                       style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 11px; color: #fff; font-size: 0.82rem; outline: none;">
+                                <button x-show="form.options.length > 2" @click="form.options.splice(i, 1)" style="color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; padding: 0 6px;">✕</button>
+                            </div>
+                        </template>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button x-show="form.options.length < 4" @click="form.options.push('')" style="color: #f59e0b; background: none; border: none; cursor: pointer; font-size: 0.78rem;">+ ajouter une option</button>
+                            <div style="flex: 1;"></div>
+                            <button @click="showForm = false" style="color: rgba(255,255,255,0.4); background: none; border: none; cursor: pointer; font-size: 0.8rem; padding: 6px 10px;">Annuler</button>
+                            <button @click="launch()" style="background: #f59e0b; color: #000; font-weight: 700; font-size: 0.8rem; padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer;">Lancer</button>
+                        </div>
+                    </div>
+                </template>
+
+                {{-- Sondage actif / résultats --}}
+                <template x-if="poll">
+                    <div style="background: #0a0a0a; border: 1px solid rgba(245,158,11,0.2); border-radius: 12px; padding: 1rem 1.1rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 0.75rem;">
+                            <span style="color: #fff; font-weight: 700; font-size: 0.9rem;" x-text="poll.question"></span>
+                            <span x-show="poll.status === 'closed'" style="color: rgba(255,255,255,0.3); font-size: 0.65rem; border: 1px solid rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 99px; white-space: nowrap;">Clos</span>
+                        </div>
+
+                        {{-- Vote (pas encore voté, sondage actif) --}}
+                        <template x-if="poll.status === 'active' && voted === null">
+                            <div style="display: flex; flex-direction: column; gap: 7px;">
+                                <template x-for="(opt, i) in poll.options" :key="i">
+                                    <button @click="vote(i)" x-text="opt"
+                                            style="text-align: left; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; padding: 10px 14px; color: #fff; font-size: 0.85rem; cursor: pointer; transition: all 0.15s;"
+                                            onmouseover="this.style.background='rgba(245,158,11,0.12)'; this.style.borderColor='rgba(245,158,11,0.4)'"
+                                            onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.12)'"></button>
+                                </template>
+                            </div>
+                        </template>
+
+                        {{-- Résultats (a voté, ou clos) --}}
+                        <template x-if="voted !== null || poll.status === 'closed'">
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <template x-for="(r, i) in poll.results" :key="i">
+                                    <div style="position: relative; background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; padding: 9px 12px;">
+                                        <div :style="'position:absolute; inset:0; width:' + percent(r.count) + '%; background:' + (i === voted ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.07)') + '; transition: width 0.5s ease;'"></div>
+                                        <div style="position: relative; display: flex; align-items: center; justify-content: space-between; font-size: 0.83rem;">
+                                            <span style="color: #fff;" x-text="r.label + (i === voted ? ' ✓' : '')"></span>
+                                            <span style="color: rgba(255,255,255,0.6); font-weight: 600;" x-text="percent(r.count) + '%'"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div style="color: rgba(255,255,255,0.3); font-size: 0.72rem; margin-top: 2px;" x-text="poll.total + ' vote' + (poll.total > 1 ? 's' : '')"></div>
+                            </div>
+                        </template>
+
+                        {{-- Modérateur : clore --}}
+                        <template x-if="canModerate && poll.status === 'active'">
+                            <button @click="closePoll()" style="margin-top: 10px; color: rgba(255,255,255,0.4); background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 7px; padding: 6px 12px; font-size: 0.75rem; cursor: pointer;">Clore le sondage</button>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
             {{-- Infos sous la vidéo --}}
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.25rem; padding: 1.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.07);">
                 <div style="display: flex; align-items: center; gap: 14px;">
@@ -76,7 +152,7 @@
                     <div>
                         <div style="color: #fff; font-weight: 600; font-size: 0.95rem;">{{ $liveSession->event?->name ?? 'Ligue de Fatick' }}</div>
                         @if($isLive)
-                        <div style="color: #ef4444; font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 6px;"><span class="live-dot" style="width:6px;height:6px;"></span> En cours de diffusion</div>
+                        <div style="color: #ef4444; font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 6px;"><span class="live-dot" style="width:6px;height:6px;"></span> En cours de diffusion <span x-show="viewers > 0" x-cloak style="color: rgba(255,255,255,0.4); font-weight: 500;" x-text="'· ' + viewers + ' spectateur' + (viewers > 1 ? 's' : '')"></span></div>
                         @else
                         <div style="color: rgba(255,255,255,0.35); font-size: 0.78rem;">Diffusion terminée @if($liveSession->ended_at)· {{ $liveSession->ended_at->format('d/m/Y') }}@endif</div>
                         @endif
@@ -305,10 +381,17 @@ window.liveReactions = function (sessionId, isLive) {
         sessionId, isLive,
         emojis: ['❤️','👏','🔥','😮','😂','🥋','💪','🎉'],
 
+        viewers: 0,
         init() {
             if (window.Echo) {
-                window.Echo.channel('live.' + this.sessionId)
-                    .listen('.reaction', (e) => this.spawn(e.emoji));
+                const ch = window.Echo.channel('live.' + this.sessionId);
+                ch.listen('.reaction', (e) => this.spawn(e.emoji));
+                // Compteur de spectateurs (nécessite « subscription counting » activé côté Pusher)
+                if (ch.subscription) {
+                    ch.subscription.bind('pusher:subscription_count', (data) => {
+                        this.viewers = data.subscription_count || 0;
+                    });
+                }
             }
         },
 
@@ -332,6 +415,73 @@ window.liveReactions = function (sessionId, isLive) {
                     body: JSON.stringify({ emoji }),
                 });
             } catch (e) {}
+        },
+    };
+};
+
+window.livePoll = function (sessionId, isLive, canModerate) {
+    return {
+        sessionId, isLive, canModerate,
+        poll: null,
+        voted: null,
+        showForm: false,
+        form: { question: '', options: ['', ''] },
+
+        async init() {
+            await this.loadCurrent();
+            if (window.Echo) {
+                const ch = window.Echo.channel('live.' + this.sessionId);
+                ch.listen('.poll.started', (p) => { this.poll = p; this.voted = null; });
+                ch.listen('.poll.updated', (p) => { if (!this.poll || this.poll.id === p.id) this.poll = p; });
+            }
+        },
+
+        async loadCurrent() {
+            try {
+                const res  = await fetch(`/direct/${this.sessionId}/poll`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const json = await res.json();
+                if (json.data) {
+                    this.poll  = json.data;
+                    this.voted = (json.data.voted !== undefined && json.data.voted !== null) ? json.data.voted : null;
+                }
+            } catch (e) {}
+        },
+
+        headers() {
+            return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content };
+        },
+
+        async launch() {
+            const q = (this.form.question || '').trim();
+            const opts = this.form.options.map(o => (o || '').trim()).filter(o => o.length > 0);
+            if (q.length < 2 || opts.length < 2) { alert('Mets une question et au moins 2 options.'); return; }
+            try {
+                const res = await fetch(`/api/live/${this.sessionId}/polls`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ question: q, options: opts }) });
+                const json = await res.json();
+                if (json.success) { this.poll = json.data; this.voted = null; this.showForm = false; this.form = { question: '', options: ['', ''] }; }
+                else alert(json.message || 'Erreur');
+            } catch (e) { alert('Erreur réseau'); }
+        },
+
+        async vote(index) {
+            try {
+                const res = await fetch(`/direct/${this.sessionId}/polls/${this.poll.id}/vote`, { method: 'POST', headers: this.headers(), body: JSON.stringify({ option_index: index }) });
+                const json = await res.json();
+                if (json.success) { this.poll = json.data; this.voted = index; }
+                else alert(json.message || 'Vote refusé.');
+            } catch (e) {}
+        },
+
+        async closePoll() {
+            try {
+                await fetch(`/api/live/polls/${this.poll.id}/close`, { method: 'POST', headers: this.headers() });
+                if (this.poll) this.poll = Object.assign({}, this.poll, { status: 'closed' });
+            } catch (e) {}
+        },
+
+        percent(count) {
+            const t = this.poll ? this.poll.total : 0;
+            return t > 0 ? Math.round((count / t) * 100) : 0;
         },
     };
 };
