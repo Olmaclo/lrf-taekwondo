@@ -1,59 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<h1 align="center">🥋 SOTAEMAD — Plateforme de la Ligue de Taekwondo de Fatick</h1>
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <strong>Gestion complète des compétitions de Taekwondo : inscriptions, pesées, tirages, paiements et classements.</strong>
 </p>
 
-## About Laravel
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white" alt="PHP 8.3">
+  <img src="https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white" alt="Laravel 12">
+  <img src="https://img.shields.io/badge/Tests-157%20passing-success?logo=pest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/Licence-MIT-blue" alt="Licence MIT">
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📖 À propos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**SOTAEMAD** est la plateforme web officielle de la **Ligue Régionale de Taekwondo de Fatick** (Sénégal), disponible sur [lrftaekwondo.com](https://lrftaekwondo.com).
 
-## Learning Laravel
+Elle couvre tout le cycle de vie d'une compétition de Taekwondo :
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- inscription des athlètes par les clubs (coaches),
+- validation technique et calcul automatique des catégories d'âge/poids,
+- gestion financière (paiements, reçus, validations),
+- contrôle des pesées le jour de la compétition,
+- génération des tirages (brackets) et suivi des résultats,
+- classements par saison,
+- vitrine publique (événements, résultats, galerie, actualités).
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## ✨ Fonctionnalités
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🗓️ Événements
+- Cycle de vie complet : *à venir → inscriptions ouvertes → fermées → en cours → terminé / annulé*.
+- **Clôture automatique** : un événement dont la date de fin est passée bascule en « terminé » chaque nuit (tâche planifiée).
+- **Verrouillage** : un événement terminé fige son historique — plus aucune écriture financière possible (les techniciens conservent un droit de correction).
 
-### Premium Partners
+### 🥋 Athlètes
+- Inscription par les coaches (limitée à leurs propres athlètes, uniquement quand les inscriptions sont ouvertes).
+- Calcul automatique de la **catégorie d'âge** (Minime, Cadet, Junior, Senior) et de la **catégorie de poids**.
+- Validation / rejet à l'unité, en masse, ou par club.
+- Protection anti-doublon (même nom + même événement).
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### ⚖️ Pesées
+- Déclaration du poids réel le jour J.
+- Détermination automatique *réussi / hors-catégorie* selon la fourchette de la catégorie.
 
-## Contributing
+### 🏆 Tirages (brackets)
+- Génération en **élimination directe** ou en **poules** selon le nombre d'athlètes.
+- Gestion des BYE, propagation automatique des vainqueurs, match pour la 3ᵉ place.
+- Export **PDF** et affichage public en temps réel.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 💰 Finances
+- Enregistrement des paiements, validation temporaire et définitive.
+- Génération de **reçus PDF**.
+- Journal financier (traçabilité de chaque action).
 
-## Code of Conduct
+### 📊 Classements
+- Agrégation par saison et par catégorie.
+- Export CSV / PDF public.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 🌐 Espace public
+Accueil, calendrier des événements, listes d'athlètes, tirages, classements, galerie photo, blog d'actualités et vérification d'inscription.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 👥 Rôles utilisateurs
 
-## License
+| Rôle | Périmètre |
+|------|-----------|
+| **Admin** | Accès complet (cumule technique + financier) |
+| **Technique** | Athlètes, pesées, tirages, événements, classements |
+| **Financier** | Paiements, reçus, validations financières |
+| **Coach** | Inscription et gestion de ses propres athlètes |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+La gestion des rôles et permissions s'appuie sur [spatie/laravel-permission](https://spatie.be/docs/laravel-permission).
+
+---
+
+## 🛠️ Stack technique
+
+- **Backend** : [Laravel 12](https://laravel.com) · PHP 8.3
+- **Frontend** : Blade · [Livewire 3](https://livewire.laravel.com) / Alpine.js (tableaux de bord en SPA)
+- **Base de données** : MySQL (production) · SQLite en mémoire (tests)
+- **Auth & rôles** : Laravel Sanctum · spatie/laravel-permission
+- **PDF** : barryvdh/laravel-dompdf (reçus, brackets)
+- **Export Excel/CSV** : maatwebsite/excel
+- **Tests** : [Pest 3](https://pestphp.com) — 157 tests / 370 assertions
+
+---
+
+## 🚀 Installation locale
+
+### Prérequis
+- PHP **8.3+**
+- Composer
+- Node.js & npm
+- MySQL (ou SQLite pour un démarrage rapide)
+
+### Mise en route
+
+```bash
+# 1. Cloner le dépôt
+git clone git@github.com:Olmaclo/lrf-taekwondo.git
+cd lrf-taekwondo
+
+# 2. Installation complète (dépendances, .env, clé, migrations + seed, assets)
+composer setup
+
+# 3. Lancer l'environnement de développement
+#    (serveur + worker de queue + logs + Vite, en parallèle)
+composer dev
+```
+
+L'application est alors disponible sur `http://localhost:8000`.
+
+> 💡 Le script `composer setup` copie `.env.example` → `.env`, génère la clé applicative, exécute les migrations avec données de démonstration, puis compile les assets.
+
+---
+
+## 🧪 Tests
+
+La suite est écrite avec **Pest** et tourne sur une base SQLite en mémoire (aucune base externe requise).
+
+```bash
+composer test
+# ou directement
+php artisan test
+```
+
+Couverture actuelle : **157 tests**, **370 assertions** — contrôleurs (athlètes, coaches, événements, finances, pesées, tirages), cycle de vie des événements, génération de brackets, catégories de poids et notifications.
+
+---
+
+## 🔒 Sécurité
+
+- En-têtes de sécurité HTTP renforcés (CSP, HSTS, anti-clickjacking) via un middleware dédié.
+- Protection contre l'assignation de masse : les champs sensibles (statuts, paiements) ne sont modifiables que par les contrôleurs autorisés.
+- Contrôle d'accès strict par rôle sur chaque endpoint.
+- Données de démonstration désactivées hors environnement local / test.
+- Audit de sécurité de type OWASP réalisé sur l'ensemble du code.
+
+---
+
+## 📦 Déploiement
+
+Le déploiement s'effectue par transfert des fichiers vers l'hébergement, suivi d'un **webhook protégé par secret** qui :
+
+1. réinitialise l'OPcache PHP,
+2. vide les caches Laravel (`optimize:clear`),
+3. peut déclencher des commandes de maintenance whitelistées (ex. clôture automatique des événements).
+
+Les tâches récurrentes (clôture quotidienne des événements terminés, nettoyage hebdomadaire des caches) sont gérées par le **planificateur Laravel** (`schedule:run`) via une tâche cron côté serveur.
+
+> ⚠️ Les secrets (identifiants FTP, secret de déploiement, clés d'API) ne sont **jamais** versionnés — ils résident uniquement dans le `.env` du serveur.
+
+---
+
+## 📁 Structure du projet
+
+```
+app/
+├── Console/Commands/      # Commandes artisan (ex. events:auto-finish)
+├── Http/Controllers/      # Logique métier (athlètes, finances, tirages…)
+├── Http/Middleware/       # Sécurité (en-têtes HTTP)
+├── Mail/                  # E-mails (validations coach/athlète)
+├── Models/                # Eloquent (Event, Athlete, Draw, User…)
+└── Services/              # Domaine métier (tirages, catégories de poids)
+database/
+├── factories/ · migrations/ · seeders/
+resources/views/           # Vues Blade (public + tableaux de bord)
+routes/                    # web.php · console.php (planificateur)
+tests/                     # Suites Pest (Feature + Unit)
+```
+
+---
+
+## 📄 Licence
+
+Projet développé pour la **Ligue Régionale de Taekwondo de Fatick**.
+Code source publié sous licence [MIT](https://opensource.org/licenses/MIT).
