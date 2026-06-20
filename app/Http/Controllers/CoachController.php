@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\CoachRejectedMail;
 use App\Mail\CoachValidatedMail;
 use App\Models\Athlete;
 use App\Models\User;
@@ -47,11 +48,19 @@ class CoachController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => array_merge($coach->toArray(), [
+            'data'    => [
+                'id'             => $coach->id,
+                'name'           => $coach->name,
+                'email'          => $coach->email,
+                'phone'          => $coach->phone,
+                'club'           => $coach->club,
+                'is_validated'   => $coach->is_validated,
+                'account_status' => $coach->account_status,
+                'created_at'     => $coach->created_at->format('d/m/Y'),
+                'avatar_url'     => $coach->avatar_url,
                 'athletes'       => $athletes,
                 'athletes_count' => $athletes->count(),
-                'avatar_url'     => $coach->avatar_url,
-            ]),
+            ],
         ]);
     }
 
@@ -74,6 +83,10 @@ class CoachController extends Controller
 
         $coach->update(['is_validated' => false, 'account_status' => 'rejected']);
 
+        try {
+            Mail::to($coach->email)->queue(new CoachRejectedMail($coach));
+        } catch (\Throwable) {}
+
         return response()->json(['success' => true, 'message' => "Coach {$coach->name} rejeté."]);
     }
 
@@ -82,7 +95,11 @@ class CoachController extends Controller
         abort_unless(Auth::user()->isTechnical(), 403);
         $ids = $request->validate(['ids' => ['required', 'array']])['ids'];
 
-        User::whereIn('id', $ids)->update(['is_validated' => true, 'account_status' => 'approved']);
+        $coaches = User::whereIn('id', $ids)->role('coach')->get();
+        $coaches->each(fn ($c) => $c->update(['is_validated' => true, 'account_status' => 'approved']));
+        foreach ($coaches as $c) {
+            try { Mail::to($c->email)->queue(new CoachValidatedMail($c)); } catch (\Throwable) {}
+        }
 
         return response()->json(['success' => true, 'message' => count($ids) . ' coach(s) validé(s).']);
     }
@@ -92,7 +109,11 @@ class CoachController extends Controller
         abort_unless(Auth::user()->isTechnical(), 403);
         $ids = $request->validate(['ids' => ['required', 'array']])['ids'];
 
-        User::whereIn('id', $ids)->update(['is_validated' => false, 'account_status' => 'rejected']);
+        $coaches = User::whereIn('id', $ids)->role('coach')->get();
+        $coaches->each(fn ($c) => $c->update(['is_validated' => false, 'account_status' => 'rejected']));
+        foreach ($coaches as $c) {
+            try { Mail::to($c->email)->queue(new CoachRejectedMail($c)); } catch (\Throwable) {}
+        }
 
         return response()->json(['success' => true, 'message' => count($ids) . ' coach(s) rejeté(s).']);
     }

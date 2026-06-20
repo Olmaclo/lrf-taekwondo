@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GalleryPhoto;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,9 +71,9 @@ class GalleryController extends Controller
             if (! in_array($file->getMimeType(), $allowedMimes, true)) {
                 return response()->json(['success' => false, 'message' => 'Type de fichier non autorisé.'], 422);
             }
-            $path     = $file->store('gallery', 'public');
+            $path     = ImageService::storeOptimized($file, 'gallery', 1400, 80);
             $fullPath = Storage::disk('public')->path($path);
-            $size     = $this->resizeIfNeeded($fullPath, $file->getMimeType());
+            $size     = filesize($fullPath) ?: $file->getSize();
             $photo = GalleryPhoto::create([
                 'path'          => $path,
                 'original_name' => mb_substr(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), 0, 100),
@@ -141,50 +142,4 @@ class GalleryController extends Controller
         ]);
     }
 
-    private function resizeIfNeeded(string $path, string $mime): ?int
-    {
-        if (! function_exists('imagecreatefromjpeg')) {
-            return null;
-        }
-
-        [$origW, $origH] = @getimagesize($path) ?: [0, 0];
-        if ($origW === 0 || $origH === 0 || ($origW <= 1920 && $origH <= 1920)) {
-            return filesize($path) ?: null;
-        }
-
-        $src = match ($mime) {
-            'image/jpeg', 'image/jpg' => @imagecreatefromjpeg($path),
-            'image/png'               => @imagecreatefrompng($path),
-            'image/webp'              => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : null,
-            default                   => null,
-        };
-
-        if (! $src) {
-            return filesize($path) ?: null;
-        }
-
-        $scale  = min(1920 / $origW, 1920 / $origH);
-        $newW   = (int) round($origW * $scale);
-        $newH   = (int) round($origH * $scale);
-        $dst    = imagecreatetruecolor($newW, $newH);
-
-        if ($mime === 'image/png') {
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-        }
-
-        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
-        imagedestroy($src);
-
-        match ($mime) {
-            'image/jpeg', 'image/jpg' => imagejpeg($dst, $path, 85),
-            'image/png'               => imagepng($dst, $path, 8),
-            'image/webp'              => function_exists('imagewebp') ? imagewebp($dst, $path, 85) : null,
-            default                   => null,
-        };
-
-        imagedestroy($dst);
-
-        return filesize($path) ?: null;
-    }
 }

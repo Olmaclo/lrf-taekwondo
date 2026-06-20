@@ -66,12 +66,26 @@ class Event extends Model
         return $this->cover_image ? asset('storage/' . $this->cover_image) : null;
     }
 
+    // ── Lifecycle states ───────────────────────────────────────────────────────
+
+    /** Statuts considérés comme « clôturés » : aucune écriture métier autorisée. */
+    public const LOCKED_STATUSES = ['finished', 'cancelled'];
+
     // ── Registration guard ─────────────────────────────────────────────────────
 
     public function isRegistrationOpen(): bool
     {
         return $this->status === 'open'
             && ($this->registration_deadline === null || $this->registration_deadline->isFuture());
+    }
+
+    /**
+     * Un événement verrouillé (terminé ou annulé) n'accepte plus de modification
+     * métier (paiements, pesées, tirages…) — sauf override d'un technicien.
+     */
+    public function isLocked(): bool
+    {
+        return in_array($this->status, self::LOCKED_STATUSES, true);
     }
 
     // ── Scopes ─────────────────────────────────────────────────────────────────
@@ -84,6 +98,18 @@ class Event extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('start_date', '>=', now())->orderBy('start_date');
+    }
+
+    /** Événements encore vivants (ni terminés ni annulés). */
+    public function scopeActive($query)
+    {
+        return $query->whereNotIn('status', self::LOCKED_STATUSES);
+    }
+
+    /** Événements archivés (terminés ou annulés). */
+    public function scopeArchived($query)
+    {
+        return $query->whereIn('status', self::LOCKED_STATUSES);
     }
 
     // ── Accessors ──────────────────────────────────────────────────────────────

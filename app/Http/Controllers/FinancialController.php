@@ -19,6 +19,7 @@ class FinancialController extends Controller
     public function markPayment(Request $request, Athlete $athlete): JsonResponse
     {
         abort_unless(Auth::user()->isFinancial(), 403);
+        $this->ensureEventWritable($athlete->event);
 
         $data = $request->validate([
             'amount'          => ['required', 'numeric', 'min:0'],
@@ -63,6 +64,7 @@ class FinancialController extends Controller
     public function editPayment(Request $request, Athlete $athlete): JsonResponse
     {
         abort_unless(Auth::user()->isFinancial(), 403);
+        $this->ensureEventWritable($athlete->event);
 
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:0'],
@@ -98,6 +100,7 @@ class FinancialController extends Controller
     public function tempValidate(Request $request, Athlete $athlete): JsonResponse
     {
         abort_unless(Auth::user()->isFinancial(), 403);
+        $this->ensureEventWritable($athlete->event);
 
         $data = $request->validate([
             'deadline' => ['required', 'date', 'after:today'],
@@ -140,7 +143,13 @@ class FinancialController extends Controller
             'notes'    => ['nullable', 'string'],
         ]);
 
-        $updated = Athlete::whereIn('id', $data['ids'])->update([
+        $query = Athlete::whereIn('id', $data['ids'])->where('registration_status', 'validated');
+        // Ne pas toucher aux paiements d'événements clôturés (sauf technicien)
+        if (! Auth::user()->isTechnical()) {
+            $query->whereHas('event', fn ($q) => $q->active());
+        }
+
+        $updated = $query->update([
             'payment_status'           => 'temp_validated',
             'temp_validation_deadline' => $data['deadline'] ?? null,
             'temp_validation_notes'    => $data['notes'] ?? null,
@@ -156,6 +165,7 @@ class FinancialController extends Controller
     public function definitiveValidate(Request $request, Athlete $athlete): JsonResponse
     {
         abort_unless(Auth::user()->isFinancial(), 403);
+        $this->ensureEventWritable($athlete->event);
 
         $prev = $athlete->payment_status;
 
@@ -179,8 +189,14 @@ class FinancialController extends Controller
     {
         abort_unless(Auth::user()->isFinancial(), 403);
 
-        $ids     = $request->validate(['ids' => ['required', 'array']])['ids'];
-        $updated = Athlete::whereIn('id', $ids)->update(['payment_status' => 'validated']);
+        $ids   = $request->validate(['ids' => ['required', 'array', 'max:500']])['ids'];
+        $query = Athlete::whereIn('id', $ids)->where('registration_status', 'validated');
+        // Ne pas toucher aux paiements d'événements clôturés (sauf technicien)
+        if (! Auth::user()->isTechnical()) {
+            $query->whereHas('event', fn ($q) => $q->active());
+        }
+
+        $updated = $query->update(['payment_status' => 'validated']);
 
         return response()->json(['success' => true, 'message' => "{$updated} paiement(s) validé(s).", 'updated' => $updated]);
     }

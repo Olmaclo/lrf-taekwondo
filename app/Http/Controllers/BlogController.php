@@ -160,10 +160,62 @@ class BlogController extends Controller
 
     private function sanitizeHtml(string $html): string
     {
-        $allowed = '<p><br><b><strong><i><em><u><s><ul><ol><li>'
-                 . '<h1><h2><h3><h4><a><img><blockquote><hr>'
-                 . '<table><thead><tbody><tr><td><th><span><div><figure><figcaption>';
-        return strip_tags($html, $allowed);
+        // strip_tags() seul ne supprime pas les attributs dangereux (onerror, onclick, href=javascript:…)
+        // On utilise un purificateur maison basé sur DOMDocument pour supprimer les attributs d'événements
+        // et les valeurs de href/src non-HTTP, sans dépendance externe.
+
+        $allowedTags = [
+            'p', 'br', 'b', 'strong', 'i', 'em', 'u', 's',
+            'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4',
+            'a', 'img', 'blockquote', 'hr',
+            'table', 'thead', 'tbody', 'tr', 'td', 'th',
+            'span', 'div', 'figure', 'figcaption',
+        ];
+
+        $allowedAttributes = [
+            'a'   => ['href', 'title', 'target'],
+            'img' => ['src', 'alt', 'title', 'width', 'height'],
+            'td'  => ['colspan', 'rowspan'],
+            'th'  => ['colspan', 'rowspan'],
+        ];
+
+        // Supprimer d'abord les tags non autorisés
+        $clean = strip_tags($html, '<' . implode('><', $allowedTags) . '>');
+
+        // Purifier les attributs via DOMDocument
+        $doc = new \DOMDocument();
+        @$doc->loadHTML('<?xml encoding="utf-8"?><div id="__wrap">' . $clean . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+
+        $xpath = new \DOMXPath($doc);
+        foreach ($xpath->query('//*') as $node) {
+            /** @var \DOMElement $node */
+            if (! in_array(strtolower($node->tagName), $allowedTags, true)) {
+                continue;
+            }
+            $allowed = $allowedAttributes[$node->tagName] ?? [];
+            $toRemove = [];
+            foreach ($node->attributes as $attr) {
+                $name  = strtolower($attr->name);
+                $value = strtolower(trim($attr->value));
+                // Supprimer tout attribut non autorisé ou contenant javascript:
+                if (! in_array($name, $allowed, true) || str_starts_with($value, 'javascript:')) {
+                    $toRemove[] = $attr->name;
+                }
+            }
+            foreach ($toRemove as $a) {
+                $node->removeAttribute($a);
+            }
+        }
+
+        $wrap = $doc->getElementById('__wrap');
+        $result = '';
+        if ($wrap) {
+            foreach ($wrap->childNodes as $child) {
+                $result .= $doc->saveHTML($child);
+            }
+        }
+
+        return $result ?: $clean;
     }
 
     // ── Private ────────────────────────────────────────────────────────────────

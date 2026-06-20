@@ -74,20 +74,39 @@ class DashboardController extends Controller
     {
         $eventScope = fn ($q) => $eventId ? $q->where('event_id', $eventId) : $q;
 
+        // Agrégats athlètes en une seule requête (registration + payment)
+        $athleteAggs = Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))
+            ->selectRaw("
+                COUNT(*)                                                                AS total,
+                SUM(registration_status = 'validated')                                 AS validated,
+                SUM(registration_status = 'pending')                                   AS pending,
+                COUNT(DISTINCT club)                                                    AS clubs,
+                SUM(payment_status IN ('paid','validated'))                             AS paid_count,
+                SUM(CASE WHEN payment_status IN ('paid','validated') THEN payment_amount ELSE 0 END) AS collected,
+                SUM(payment_status = 'validated')                                       AS validated_payments,
+                SUM(payment_status = 'temp_validated')                                  AS pending_payments,
+                SUM(payment_status = 'unpaid')                                          AS unpaid
+            ")
+            ->first();
+
+        // Agrégats coaches en une seule requête
+        $coachAggs = User::role('coach')
+            ->selectRaw("COUNT(*) AS total, SUM(is_validated = 0) AS pending")
+            ->first();
+
         $stats = [
             'total_events'        => Event::count(),
-            'total_athletes'      => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->count(),
-            'validated_athletes'  => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->where('registration_status', 'validated')->count(),
-            'pending_athletes'    => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->where('registration_status', 'pending')->count(),
-            'total_coaches'       => User::role('coach')->count(),
-            'pending_coaches'     => User::role('coach')->where('is_validated', false)->count(),
             'total_draws'         => Draw::count(),
-            'total_clubs'         => Athlete::distinct('club')->count('club'),
-            // Financial
-            'total_collected'     => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->whereIn('payment_status', ['paid', 'validated'])->sum('payment_amount'),
-            'validated_payments'  => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->where('payment_status', 'validated')->count(),
-            'pending_payments'    => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->where('payment_status', 'temp_validated')->count(),
-            'unpaid_athletes'     => Athlete::when($eventId, fn ($q) => $q->where('event_id', $eventId))->where('payment_status', 'unpaid')->count(),
+            'total_athletes'      => (int) $athleteAggs->total,
+            'validated_athletes'  => (int) $athleteAggs->validated,
+            'pending_athletes'    => (int) $athleteAggs->pending,
+            'total_clubs'         => (int) $athleteAggs->clubs,
+            'total_coaches'       => (int) $coachAggs->total,
+            'pending_coaches'     => (int) $coachAggs->pending,
+            'total_collected'     => (float) $athleteAggs->collected,
+            'validated_payments'  => (int) $athleteAggs->validated_payments,
+            'pending_payments'    => (int) $athleteAggs->pending_payments,
+            'unpaid_athletes'     => (int) $athleteAggs->unpaid,
         ];
 
         return response()->json(['success' => true, 'data' => $stats]);

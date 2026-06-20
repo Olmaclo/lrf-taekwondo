@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Draw;
 use App\Models\Event;
 use App\Services\DrawGenerationService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,6 +53,8 @@ class DrawController extends Controller
 
     public function byEvent(Request $request): JsonResponse
     {
+        abort_unless(Auth::user()->isTechnical(), 403);
+
         $eventId = $request->validate(['event_id' => ['nullable', 'exists:events,id']])['event_id'] ?? null;
 
         $draws = Draw::when($eventId, fn ($q) => $q->where('event_id', $eventId))
@@ -75,6 +79,10 @@ class DrawController extends Controller
 
     public function show(Draw $draw): JsonResponse
     {
+        abort_unless(Auth::user()->isTechnical(), 403);
+
+        $draw->loadMissing(['event', 'generator']);
+
         return response()->json([
             'success' => true,
             'data'    => [
@@ -91,7 +99,31 @@ class DrawController extends Controller
                 'event_slug'     => $draw->event->slug,
                 'generated_at'   => $draw->generated_at->format('d/m/Y H:i'),
                 'generated_by'   => $draw->generator?->name,
+                'updated_at'     => $draw->updated_at->toISOString(),
             ],
+        ]);
+    }
+
+    // ── Public bracket partial (AJAX, no auth required) ───────────────────────
+
+    public function bracketPartial(Draw $draw): ViewContract
+    {
+        $draw->load('event');
+        $isAdmin = Auth::check() && Auth::user()?->isTechnical();
+        return view('_partials.draw-bracket', [
+            'draw'    => $draw,
+            'event'   => $draw->event,
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    // ── Lightweight status for public polling ─────────────────────────────────
+
+    public function status(Draw $draw): JsonResponse
+    {
+        return response()->json([
+            'id'         => $draw->id,
+            'updated_at' => $draw->updated_at->toISOString(),
         ]);
     }
 
@@ -134,6 +166,56 @@ class DrawController extends Controller
 
         $draw->save();
         return response()->json(['success' => true, 'message' => 'Résultat réinitialisé.']);
+    }
+
+    // ── Repair bracket ───────────────────────────────────────────────────────
+
+    public function repair(Draw $draw): JsonResponse
+    {
+        abort_unless(Auth::user()->isTechnical(), 403);
+
+        $draw = $this->drawService->repairBracket($draw);
+
+        return response()->json(['success' => true, 'message' => 'Bracket réparé avec succès.', 'data' => $draw]);
+    }
+
+    // ── PDF export ────────────────────────────────────────────────────────────
+
+    public function bracketPdf(Draw $draw)
+    {
+        $draw->load('event');
+
+        $roundLabel = function (int $round, int $maxRound): string {
+            $remaining = $round;
+            return match (true) {
+                $remaining === 1                     => 'Finale',
+                $remaining === 2                     => 'Demi-finales',
+                $remaining === 3                     => 'Quarts de finale',
+                $remaining === 4                     => 'Huitièmes de finale',
+                default                              => 'Tour ' . $remaining,
+            };
+        };
+
+        $byRound = [];
+        if ($draw->matches) {
+            $maxRound = collect($draw->matches)->max('round') ?? 1;
+            foreach ($draw->matches as $m) {
+                $label = $roundLabel($m['round'], $maxRound);
+                $byRound[$m['round']]['label']     = $label;
+                $byRound[$m['round']]['matches'][] = $m;
+            }
+            krsort($byRound);
+        }
+
+        $pdf = Pdf::loadView('exports.bracket-pdf', [
+            'draw'        => $draw,
+            'event'       => $draw->event,
+            'byRound'     => $byRound,
+            'generatedAt' => now()->format('d/m/Y H:i'),
+        ])->setPaper('a4', 'portrait');
+
+        $slug = $draw->event?->slug ?? 'draw';
+        return $pdf->download("tirage-{$slug}-{$draw->category}.pdf");
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────

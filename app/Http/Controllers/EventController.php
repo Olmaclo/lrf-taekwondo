@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,11 @@ class EventController extends Controller
 {
     public function index(): JsonResponse
     {
+        abort_unless(Auth::user()->isTechnical() || Auth::user()->isFinancial(), 403);
+
         $events = Event::withCount('athletes')
+            // Actifs d'abord, archives (terminés/annulés) en fin de liste
+            ->orderByRaw("CASE WHEN status IN ('finished', 'cancelled') THEN 1 ELSE 0 END")
             ->latest()
             ->get()
             ->map(fn ($e) => [
@@ -38,6 +43,8 @@ class EventController extends Controller
 
     public function show(Event $event): JsonResponse
     {
+        abort_unless(Auth::user()->isTechnical() || Auth::user()->isFinancial(), 403);
+
         return response()->json([
             'success' => true,
             'data'    => array_merge($event->toArray(), [
@@ -69,7 +76,7 @@ class EventController extends Controller
         if ($request->hasFile('cover_image')) {
             $mime = $request->file('cover_image')->getMimeType();
             abort_unless(in_array($mime, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], true), 422, 'Type de fichier non autorisé.');
-            $data['cover_image'] = $request->file('cover_image')->store('events', 'public');
+            $data['cover_image'] = ImageService::storeOptimized($request->file('cover_image'), 'events', 1200, 80);
         } else {
             unset($data['cover_image']);
         }
@@ -109,7 +116,7 @@ class EventController extends Controller
             if ($event->cover_image) {
                 Storage::disk('public')->delete($event->cover_image);
             }
-            $data['cover_image'] = $request->file('cover_image')->store('events', 'public');
+            $data['cover_image'] = ImageService::storeOptimized($request->file('cover_image'), 'events', 1200, 80);
         } else {
             unset($data['cover_image']);
         }
@@ -122,6 +129,9 @@ class EventController extends Controller
     public function destroy(Event $event): JsonResponse
     {
         abort_unless(Auth::user()->isTechnical(), 403);
+        if ($event->cover_image) {
+            Storage::disk('public')->delete($event->cover_image);
+        }
         $event->delete();
         return response()->json(['success' => true, 'message' => 'Événement supprimé.']);
     }

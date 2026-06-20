@@ -18,6 +18,7 @@ use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WeighInController;
 use Illuminate\Support\Facades\Route;
 
 // ── Sitemap ────────────────────────────────────────────────────────────────────
@@ -26,14 +27,24 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap')
 // ── Deploy webhook (post-FTP artisan commands, protégé par secret header) ─────
 Route::post('/webhook/deploy', [\App\Http\Controllers\DeployController::class, 'hook'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->middleware('throttle:10,1')
     ->name('webhook.deploy');
+
+// ── Public draw partial routes (AJAX — no auth required) ──────────────────────
+Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
+Route::get('/tirages/{draw}/status',  [DrawController::class, 'status'])->name('draws.status');
+Route::get('/tirages/{draw}/pdf',     [DrawController::class, 'bracketPdf'])->name('draws.pdf')->middleware('throttle:10,1');
 
 // ── Public ─────────────────────────────────────────────────────────────────────
 Route::get('/',                        [PublicController::class, 'home'])->name('public.home');
 Route::get('/evenements',              [PublicController::class, 'events'])->name('public.events');
 Route::get('/evenements/{slug}',       [PublicController::class, 'eventDetail'])->name('public.event-detail');
-Route::get('/evenements/{slug}/liste',   [PublicController::class, 'athleteList'])->name('public.athlete-list');
-Route::get('/evenements/{slug}/tirages', [PublicController::class, 'draws'])->name('public.draws');
+Route::get('/evenements/{slug}/liste',            [PublicController::class, 'athleteList'])->name('public.athlete-list');
+Route::get('/evenements/{slug}/liste/export/csv', [PublicController::class, 'athleteListCsv'])->name('public.athlete-list-csv')->middleware('throttle:10,1');
+Route::get('/evenements/{slug}/tirages',          [PublicController::class, 'draws'])->name('public.draws');
+Route::get('/classements',               [PublicController::class, 'rankings'])->name('public.rankings');
+Route::get('/classements/export/csv',    [ExportController::class, 'rankingsCsv'])->name('public.rankings-csv')->middleware('throttle:10,1');
+Route::get('/classements/export/pdf',    [ExportController::class, 'rankingsPdf'])->name('public.rankings-pdf')->middleware('throttle:10,1');
 Route::get('/galerie',                 [PublicController::class, 'gallery'])->name('public.gallery');
 Route::get('/actualites',              [PublicController::class, 'blog'])->name('public.blog');
 Route::get('/actualites/{slug}',       [PublicController::class, 'blogPost'])->name('public.blog-post');
@@ -93,6 +104,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/weight-categories',         [AthleteController::class, 'weightCategories'])->name('weight-categories');
         Route::post('/bulk-delete',              [AthleteController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('/bulk-validate',            [AthleteController::class, 'bulkValidate'])->name('bulk-validate');
+        Route::post('/bulk-reject',              [AthleteController::class, 'bulkReject'])->name('bulk-reject');
         Route::post('/validate-by-club',         [AthleteController::class, 'validateByClub'])->name('validate-by-club');
         Route::post('/delete-by-club',           [AthleteController::class, 'destroyByClub'])->name('delete-by-club');
         Route::get('/{athlete}',                 [AthleteController::class, 'show'])->name('show');
@@ -110,6 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{draw}',            [DrawController::class, 'destroy'])->name('destroy');
         Route::post('/{draw}/set-winner',   [DrawController::class, 'setWinner'])->name('set-winner');
         Route::post('/{draw}/reset-winner', [DrawController::class, 'resetWinner'])->name('reset-winner');
+        Route::post('/{draw}/repair',       [DrawController::class, 'repair'])->name('repair');
     });
 
     // ── Coaches ───────────────────────────────────────────────────────────────
@@ -176,10 +189,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{user}',                 [UserController::class, 'destroy'])->name('destroy');
     });
 
+    // ── Pesée ─────────────────────────────────────────────────────────────────
+    Route::get('/evenements/{slug}/pesee',              [WeighInController::class, 'index'])->name('weigh-in.index');
+    Route::post('/api/athletes/{athlete}/weigh-in',     [WeighInController::class, 'declare'])->name('weigh-in.declare');
+    Route::post('/api/athletes/{athlete}/weigh-in/reset', [WeighInController::class, 'reset'])->name('weigh-in.reset');
+
     // ── Exports (max 10 téléchargements/minute par utilisateur) ──────────────
     Route::middleware('throttle:10,1')->prefix('exports')->name('exports.')->group(function () {
         Route::get('/athletes/xlsx', [ExportController::class, 'athletes'])->name('athletes-xlsx');
         Route::get('/athletes/csv',  [ExportController::class, 'athletesCsv'])->name('athletes-csv');
         Route::get('/athletes/pdf',  [ExportController::class, 'athletesPdf'])->name('athletes-pdf');
     });
+
 });

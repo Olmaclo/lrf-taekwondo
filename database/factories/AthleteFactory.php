@@ -14,7 +14,7 @@ class AthleteFactory extends Factory
     public function definition(): array
     {
         $gender        = $this->faker->randomElement(['M', 'F']);
-        $ageCategories = ['Benjamin', 'Minime', 'Cadet', 'Junior', 'Senior'];
+        $ageCategories = ['Minime', 'Cadet', 'Junior', 'Senior'];
         $weightCats    = ['-46kg', '-49kg', '-53kg', '-57kg', '-62kg', '-68kg', '-74kg', '-80kg', '+80kg'];
         $birthYear     = $this->faker->numberBetween(1995, 2012);
 

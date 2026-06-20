@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -63,10 +64,19 @@ class UserController extends Controller
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', Rules\Password::min(10)->letters()->numbers()],
             'role'     => ['required', 'string', 'exists:roles,name'],
             'phone'    => ['nullable', 'string'],
             'club'     => ['nullable', 'string'],
+        ], [
+            'name.required'     => 'Le nom est obligatoire.',
+            'email.required'    => 'L\'adresse email est obligatoire.',
+            'email.email'       => 'L\'adresse email n\'est pas valide.',
+            'email.unique'      => 'Cette adresse email est déjà utilisée par un autre compte.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.min'      => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'role.required'     => 'Le rôle est obligatoire.',
+            'role.exists'       => 'Le rôle sélectionné est invalide.',
         ]);
 
         $user = User::create([
@@ -114,7 +124,7 @@ class UserController extends Controller
 
     public function sendPasswordReset(User $user): JsonResponse
     {
-        abort_unless(Auth::user()->isTechnical(), 403);
+        abort_unless(Auth::user()->isAdmin(), 403);
 
         $status = Password::sendResetLink(['email' => $user->email]);
 

@@ -106,6 +106,23 @@ class AthleteController extends Controller
             $data['coach_id'] = null;
         }
 
+        // Prevent duplicate registration (same name + same event)
+        $duplicate = Athlete::where('event_id', $data['event_id'])
+            ->whereRaw('LOWER(first_name) = ?', [strtolower($data['first_name'])])
+            ->whereRaw('LOWER(last_name) = ?', [strtolower($data['last_name'])])
+            ->exists();
+        if ($duplicate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cet athlète est déjà inscrit à cette compétition.',
+            ], 422);
+        }
+
+        // Respecter le défaut DB : nationality NOT NULL DEFAULT 'Sénégalaise'
+        if (empty($data['nationality'])) {
+            unset($data['nationality']);
+        }
+
         // Auto-compute age_category if not provided
         if (empty($data['age_category']) && ! empty($data['birth_date'])) {
             $age = now()->diffInYears($data['birth_date']);
@@ -184,11 +201,27 @@ class AthleteController extends Controller
         abort_unless(Auth::user()->isTechnical(), 403);
         $ids = $request->validate(['ids' => ['required', 'array', 'min:1'], 'ids.*' => ['integer']])['ids'];
 
-        $deleted = Athlete::whereIn('id', $ids)->delete();
+        $athletes  = Athlete::whereIn('id', $ids)->get();
+        $validated = $athletes->where('registration_status', 'validated')->count();
+        $deletable = $athletes->where('registration_status', '!=', 'validated');
+
+        if ($validated > 0 && $deletable->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Impossible de supprimer : {$validated} athlète(s) validé(s) sélectionné(s). Rejetez-les d'abord.",
+            ], 422);
+        }
+
+        $deleted = Athlete::whereIn('id', $deletable->pluck('id')->all())->delete();
+
+        $message = "{$deleted} athlète(s) supprimé(s).";
+        if ($validated > 0) {
+            $message .= " {$validated} athlète(s) validé(s) ignoré(s) (rejetez-les d'abord).";
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "{$deleted} athlète(s) supprimé(s).",
+            'message' => $message,
             'deleted' => $deleted,
         ]);
     }
@@ -230,7 +263,7 @@ class AthleteController extends Controller
         abort_unless(Auth::user()->isTechnical(), 403);
         $ids = $request->validate(['ids' => ['required', 'array']])['ids'];
 
-        $updated = Athlete::whereIn('id', $ids)->update([
+        $updated = Athlete::whereIn('id', $ids)->whereNotNull('weight_category')->update([
             'registration_status' => 'validated',
             'validated_by'        => Auth::id(),
             'validated_at'        => now(),
@@ -303,6 +336,49 @@ class AthleteController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Athlète rejeté.']);
+    }
+
+    public function bulkReject(Request $request): JsonResponse
+    {
+        abort_unless(Auth::user()->isTechnical(), 403);
+        $data = $request->validate([
+            'ids'    => ['required', 'array', 'min:1'],
+            'ids.*'  => ['integer'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $athletes = Athlete::whereIn('id', $data['ids'])
+            ->where('registration_status', '!=', 'rejected')
+            ->get();
+
+        if ($athletes->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun athlète à rejeter dans la sélection.',
+            ], 422);
+        }
+
+        foreach ($athletes as $athlete) {
+            $athlete->forceFill([
+                'registration_status' => 'rejected',
+                'rejection_reason'    => $data['reason'] ?? null,
+                'validated_by'        => Auth::id(),
+                'validated_at'        => now(),
+            ])->save();
+
+            $athlete->load(['coach', 'event']);
+            if ($athlete->coach?->email) {
+                try {
+                    Mail::to($athlete->coach->email)->queue(new AthleteRejectedMail($athlete));
+                } catch (\Throwable) {}
+            }
+        }
+
+        return response()->json([
+            'success'  => true,
+            'message'  => "{$athletes->count()} athlète(s) rejeté(s).",
+            'rejected' => $athletes->count(),
+        ]);
     }
 
     // ── Categories by event ───────────────────────────────────────────────────

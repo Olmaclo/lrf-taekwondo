@@ -104,13 +104,22 @@ class RankingController extends Controller
 
         $created = 0;
 
+        // Précharger tous les athlètes impliqués en une seule requête (évite N+1)
+        $allResults     = [];
+        $allAthleteIds  = [];
         foreach ($draws as $draw) {
-            $category = $draw->age_category . '|' . $draw->gender . '|' . $draw->weight_category;
-            $results  = $this->extractResultsFromDraw($draw);
+            $results = $this->extractResultsFromDraw($draw);
+            $allResults[$draw->id] = ['category' => $draw->age_category . '|' . $draw->gender . '|' . $draw->weight_category, 'results' => $results];
+            $allAthleteIds = array_merge($allAthleteIds, array_column($results, 'athlete_id'));
+        }
+        $athleteExists = Athlete::whereIn('id', array_unique($allAthleteIds))->pluck('id')->flip();
+
+        foreach ($draws as $draw) {
+            $category = $allResults[$draw->id]['category'];
+            $results  = $allResults[$draw->id]['results'];
 
             foreach ($results as $result) {
-                $athlete = Athlete::find($result['athlete_id']);
-                if (!$athlete) continue;
+                if (! isset($athleteExists[$result['athlete_id']])) continue;
 
                 Ranking::updateOrCreate(
                     [
@@ -140,112 +149,115 @@ class RankingController extends Controller
 
     private function extractResultsFromDraw(Draw $draw): array
     {
-        $results = [];
-
         if ($draw->use_pools && $draw->pools) {
-            foreach ($draw->pools as $pool) {
-                $stats = $this->computePoolStats($pool['matches'] ?? []);
-                foreach ($stats as $athleteId => $stat) {
-                    $results[] = array_merge(['athlete_id' => $athleteId], $stat);
+            $pools  = $draw->pools;
+            $finals = $pools['finals'] ?? [];
+            $wins   = [];
+            $losses = [];
+
+            // Accumulate wins/losses from all pool matches
+            foreach ($pools['pools'] ?? [] as $pool) {
+                foreach ($pool['matches'] ?? [] as $m) {
+                    $this->accumulateWinsLosses($m, $wins, $losses);
                 }
             }
-            return $results;
+            // Also count wins/losses from finals matches
+            foreach ($finals as $m) {
+                if (($m['round'] ?? -1) === 0) continue;
+                $this->accumulateWinsLosses($m, $wins, $losses);
+            }
+
+            return $this->extractPositionsFromBracket($finals, $wins, $losses);
         }
 
         if (!$draw->matches) return [];
 
-        $matches = collect($draw->matches);
-        $wins    = [];
-        $losses  = [];
-        $maxRound = 0;
+        $wins   = [];
+        $losses = [];
+        foreach ($draw->matches as $m) {
+            $this->accumulateWinsLosses($m, $wins, $losses);
+        }
 
-        foreach ($matches as $match) {
-            $round = $match['round_num'] ?? 0;
-            if ($round > $maxRound) $maxRound = $round;
-            if ($w = $match['winner_id'] ?? null) {
-                $wins[$w]  = ($wins[$w]  ?? 0) + 1;
-            }
-            foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                if ($id = $match[$key] ?? null) {
-                    $wins[$id]   = $wins[$id]   ?? 0;
-                    $losses[$id] = $losses[$id] ?? 0;
+        return $this->extractPositionsFromBracket($draw->matches, $wins, $losses);
+    }
+
+    private function accumulateWinsLosses(array $m, array &$wins, array &$losses): void
+    {
+        $a1id = $m['athlete1']['id'] ?? null;
+        $a2id = $m['athlete2']['id'] ?? null;
+
+        if ($a1id) { $wins[$a1id] ??= 0; $losses[$a1id] ??= 0; }
+        if ($a2id) { $wins[$a2id] ??= 0; $losses[$a2id] ??= 0; }
+
+        if ($w = $m['winner_id'] ?? null) {
+            $wins[$w] = ($wins[$w] ?? 0) + 1;
+            foreach ([$a1id, $a2id] as $pid) {
+                if ($pid && $pid !== $w) {
+                    $losses[$pid] = ($losses[$pid] ?? 0) + 1;
                 }
             }
-            if ($w = $match['winner_id'] ?? null) {
-                foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                    $loser = $match[$key] ?? null;
-                    if ($loser && $loser !== $w) {
-                        $losses[$loser] = ($losses[$loser] ?? 0) + 1;
+        }
+    }
+
+    private function extractPositionsFromBracket(array $matches, array $wins, array $losses): array
+    {
+        $results    = [];
+        $positioned = [];
+        $col        = collect($matches);
+
+        // 1st & 2nd: from the finale (round === 1)
+        $final = $col->firstWhere('round', 1);
+        if ($final && ($final['winner_id'] ?? null)) {
+            $w = $final['winner_id'];
+            $results[]    = ['athlete_id' => $w, 'position' => 1, 'wins' => $wins[$w] ?? 0, 'losses' => $losses[$w] ?? 0];
+            $positioned[] = $w;
+
+            foreach (['athlete1', 'athlete2'] as $k) {
+                $id = $final[$k]['id'] ?? null;
+                if ($id && $id !== $w && !($final[$k]['placeholder'] ?? false) && !in_array($id, $positioned)) {
+                    $results[]    = ['athlete_id' => $id, 'position' => 2, 'wins' => $wins[$id] ?? 0, 'losses' => $losses[$id] ?? 0];
+                    $positioned[] = $id;
+                }
+            }
+        }
+
+        // 3rd & 4th: from the petite finale (round === 0) if it has a winner
+        $pf3 = $col->firstWhere('round', 0);
+        if ($pf3 && ($pf3['winner_id'] ?? null)) {
+            $w3 = $pf3['winner_id'];
+            if (!in_array($w3, $positioned)) {
+                $results[]    = ['athlete_id' => $w3, 'position' => 3, 'wins' => $wins[$w3] ?? 0, 'losses' => $losses[$w3] ?? 0];
+                $positioned[] = $w3;
+            }
+            foreach (['athlete1', 'athlete2'] as $k) {
+                $id = $pf3[$k]['id'] ?? null;
+                if ($id && $id !== $w3 && !($pf3[$k]['placeholder'] ?? false) && !in_array($id, $positioned)) {
+                    $results[]    = ['athlete_id' => $id, 'position' => 4, 'wins' => $wins[$id] ?? 0, 'losses' => $losses[$id] ?? 0];
+                    $positioned[] = $id;
+                }
+            }
+        } else {
+            // Direct elimination: semi losers (round === 2) get 3rd place
+            foreach ($col->where('round', 2) as $semi) {
+                if (!($semi['winner_id'] ?? null)) continue;
+                $sw = $semi['winner_id'];
+                foreach (['athlete1', 'athlete2'] as $k) {
+                    $id = $semi[$k]['id'] ?? null;
+                    if ($id && $id !== $sw && !($semi[$k]['placeholder'] ?? false) && !in_array($id, $positioned)) {
+                        $results[]    = ['athlete_id' => $id, 'position' => 3, 'wins' => $wins[$id] ?? 0, 'losses' => $losses[$id] ?? 0];
+                        $positioned[] = $id;
                     }
                 }
             }
         }
 
-        // Determine positions from final matches
-        $finals       = $matches->where('round', 'final');
-        $semis        = $matches->where('round', 'semi');
-        $finalistsIds = [];
-
-        foreach ($finals as $final) {
-            $winner = $final['winner_id'] ?? null;
-            if ($winner) {
-                $results[] = ['athlete_id' => $winner, 'position' => 1, 'wins' => $wins[$winner] ?? 0, 'losses' => 0];
-                $finalistsIds[] = $winner;
-                foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                    $id = $final[$key] ?? null;
-                    if ($id && $id !== $winner) {
-                        $results[] = ['athlete_id' => $id, 'position' => 2, 'wins' => $wins[$id] ?? 0, 'losses' => $losses[$id] ?? 0];
-                        $finalistsIds[] = $id;
-                    }
-                }
-            }
-        }
-
-        foreach ($semis as $semi) {
-            foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                $id = $semi[$key] ?? null;
-                if ($id && !in_array($id, $finalistsIds)) {
-                    $loser = ($semi['winner_id'] ?? null) && $id !== $semi['winner_id'];
-                    if ($loser) {
-                        $results[] = ['athlete_id' => $id, 'position' => 3, 'wins' => $wins[$id] ?? 0, 'losses' => $losses[$id] ?? 0];
-                    }
-                }
-            }
-        }
-
-        // Remaining athletes who had matches but no position yet
-        $positioned = array_column($results, 'athlete_id');
+        // Remaining athletes who participated but have no position yet
         foreach (array_keys($wins) as $id) {
-            if (!in_array($id, $positioned)) {
+            if ($id && !in_array($id, $positioned)) {
                 $results[] = ['athlete_id' => $id, 'position' => null, 'wins' => $wins[$id], 'losses' => $losses[$id] ?? 0];
             }
         }
 
         return $results;
-    }
-
-    private function computePoolStats(array $matches): array
-    {
-        $stats = [];
-        foreach ($matches as $match) {
-            foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                $id = $match[$key] ?? null;
-                if ($id) $stats[$id] ??= ['wins' => 0, 'losses' => 0];
-            }
-            if ($w = $match['winner_id'] ?? null) {
-                $stats[$w]['wins']++;
-                foreach (['athlete1_id', 'athlete2_id'] as $key) {
-                    $l = $match[$key] ?? null;
-                    if ($l && $l !== $w) $stats[$l]['losses']++;
-                }
-            }
-        }
-        // Sort by wins desc to assign position
-        arsort($stats);
-        $pos = 1;
-        foreach ($stats as $id => $stat) {
-            $stats[$id]['position'] = $pos++;
-        }
-        return $stats;
     }
 }

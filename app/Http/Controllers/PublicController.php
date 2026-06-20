@@ -51,7 +51,7 @@ class PublicController extends Controller
         $stats = [
             'athletes' => Athlete::where('registration_status', 'validated')->count(),
             'events'   => Event::where('status', 'finished')->count(),
-            'coaches'  => User::role('coach')->count(),
+            'coaches'  => User::whereHas('roles', fn($q) => $q->where('name', 'coach'))->count(),
             'clubs'    => Athlete::where('registration_status', 'validated')->distinct('club')->count('club'),
         ];
 
@@ -60,7 +60,10 @@ class PublicController extends Controller
 
     public function events(Request $request): View
     {
-        $q = Event::query()->latest('start_date');
+        // Événements actifs d'abord, archives (terminés/annulés) ensuite ; récents en tête.
+        $q = Event::query()
+            ->orderByRaw("CASE WHEN status IN ('finished', 'cancelled') THEN 1 ELSE 0 END")
+            ->latest('start_date');
 
         if ($request->type) {
             $q->where('type', $request->type);
@@ -195,6 +198,57 @@ class PublicController extends Controller
         return view('public.athlete-list', compact('event', 'grouped'));
     }
 
+    public function athleteListCsv(string $slug)
+    {
+        $event = Event::where('slug', $slug)->firstOrFail();
+
+        $ageOrder = ['Minime' => 1, 'Cadet' => 2, 'Junior' => 3, 'Senior' => 4];
+
+        $athletes = Athlete::where('event_id', $event->id)
+            ->where('registration_status', 'validated')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get()
+            ->sortBy([
+                [fn($a) => $ageOrder[$a->age_category] ?? 99, 'asc'],
+                ['gender', 'asc'],
+                [fn($a) => (int) preg_replace('/[^0-9]/', '', $a->weight_category), 'asc'],
+                ['last_name', 'asc'],
+                ['first_name', 'asc'],
+            ])
+            ->values();
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="athletes-' . $event->slug . '.csv"',
+        ];
+
+        $callback = function () use ($athletes) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, ['Rang', 'Catégorie âge', 'Genre', 'Catégorie poids', 'Prénom', 'Nom', 'Club', 'N° Licence'], ';');
+            $rank = 1;
+            $prevKey = null;
+            foreach ($athletes as $a) {
+                $key = $a->age_category . '||' . $a->gender . '||' . $a->weight_category;
+                if ($key !== $prevKey) { $rank = 1; $prevKey = $key; }
+                fputcsv($out, [
+                    $rank++,
+                    $a->age_category,
+                    $a->gender === 'M' ? 'Masculin' : 'Féminin',
+                    $a->weight_category,
+                    $a->first_name,
+                    $a->last_name,
+                    $a->club ?? '—',
+                    $a->license_number ?? '',
+                ], ';');
+            }
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function draws(string $slug): View
     {
         $event = Event::where('slug', $slug)->firstOrFail();
@@ -214,7 +268,47 @@ class PublicController extends Controller
                 [fn($d) => (int) preg_replace('/[^0-9]/', '', $d->weight_category), 'asc'],
             ]);
 
-        return view('public.draws', compact('event', 'draws'));
+        $isAdmin = Auth::check() && Auth::user()?->isTechnical();
+
+        return view('public.draws', compact('event', 'draws', 'isAdmin'));
+    }
+
+    public function rankings(Request $request): View
+    {
+        $season  = (int) ($request->season ?? now()->year);
+        $seasons = Ranking::distinct('season')->orderByDesc('season')->pluck('season');
+
+        // Aggregate per athlete per category across all events in the season
+        $byCategory = Ranking::where('season', $season)
+            ->with(['athlete:id,first_name,last_name,club,gender', 'event:id,name,slug'])
+            ->get()
+            ->groupBy('category')
+            ->map(function ($catRankings) {
+                return $catRankings
+                    ->groupBy('athlete_id')
+                    ->map(function ($rows) {
+                        $first = $rows->first();
+                        return [
+                            'athlete_id'    => $first->athlete_id,
+                            'athlete'       => $first->athlete,
+                            'total_points'  => $rows->sum('points'),
+                            'total_wins'    => $rows->sum('wins'),
+                            'events_count'  => $rows->count(),
+                            'best_position' => $rows->whereNotNull('position')->min('position'),
+                            'events'        => $rows->map(fn($r) => [
+                                'name'     => $r->event?->name,
+                                'slug'     => $r->event?->slug,
+                                'position' => $r->position,
+                                'points'   => $r->points,
+                            ])->values(),
+                        ];
+                    })
+                    ->sortByDesc('total_points')
+                    ->values();
+            })
+            ->sortKeys();
+
+        return view('public.rankings', compact('byCategory', 'season', 'seasons'));
     }
 
     public function contact(): View
@@ -273,7 +367,10 @@ class PublicController extends Controller
         $data['created_by'] = $user->id;
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('athletes', 'public');
+            $file         = $request->file('photo');
+            $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+            abort_unless(in_array($file->getMimeType(), $allowedMimes, true), 422, 'Type de fichier non autorisé.');
+            $data['photo'] = $file->store('athletes', 'public');
         }
 
         $event     = Event::findOrFail($data['event_id']);

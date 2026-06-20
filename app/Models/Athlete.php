@@ -27,12 +27,13 @@ class Athlete extends Model
         'payment_status', 'payment_amount', 'payment_method', 'transaction_ref',
         'receipt_number', 'payment_date',
         'temp_validation_deadline', 'temp_validation_notes', 'temp_validated_by', 'temp_validated_at',
+        'weigh_in_status', 'weigh_in_weight', 'weigh_in_at', 'weigh_in_by',
     ];
 
     protected $appends = [
         'full_name', 'age', 'category_label',
         'registration_status_label', 'payment_status_label',
-        'photo_url', 'coach_name',
+        'photo_url',
     ];
 
     protected function casts(): array
@@ -44,8 +45,10 @@ class Athlete extends Model
             'payment_date'             => 'datetime',
             'temp_validation_deadline' => 'datetime',
             'temp_validated_at'        => 'datetime',
+            'weigh_in_at'              => 'datetime',
             'payment_amount'           => 'float',
             'weight'                   => 'float',
+            'weigh_in_weight'          => 'float',
         ];
     }
 
@@ -150,6 +153,15 @@ class Athlete extends Model
             'paid'           => 'Payé',
             'validated'      => 'Validé',
             default          => ucfirst((string) $this->payment_status),
+        };
+    }
+
+    public function getWeighInStatusLabelAttribute(): string
+    {
+        return match ($this->weigh_in_status) {
+            'passed' => 'Réussi',
+            'failed' => 'Hors catégorie',
+            default  => 'Non pesé',
         };
     }
 
