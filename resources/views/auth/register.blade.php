@@ -183,10 +183,11 @@
             <p style="color: rgba(255,255,255,0.28); font-size: 0.76rem; line-height: 1.55; margin: 0;">Votre compte sera activé après vérification de vos informations par l'équipe technique de la Ligue. Vous pourrez ensuite inscrire vos athlètes aux compétitions.</p>
         </div>
 
-        <button type="submit"
+        <div id="register-error" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#fca5a5;font-size:0.8rem;"></div>
+        <button type="submit" id="register-submit"
                 style="width: 100%; padding: 13px; background: #f59e0b; color: #000; font-weight: 700; font-size: 0.8rem; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; letter-spacing: 0.07em; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif; clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);"
-                onmouseover="this.style.background='#fbbf24'; this.style.boxShadow='0 0 24px rgba(245,158,11,0.3)'"
-                onmouseout="this.style.background='#f59e0b'; this.style.boxShadow='none'">
+                onmouseover="if(!this.disabled){this.style.background='#fbbf24'; this.style.boxShadow='0 0 24px rgba(245,158,11,0.3)'}"
+                onmouseout="if(!this.disabled){this.style.background='#f59e0b'; this.style.boxShadow='none'}">
             Créer mon compte
         </button>
 
@@ -213,6 +214,34 @@ function togglePwd(id) {
     var input = document.getElementById(id);
     input.type = input.type === 'password' ? 'text' : 'password';
 }
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    var errEl = document.getElementById('register-error');
+    var pwd   = document.getElementById('pwd-field').value;
+    var conf  = document.querySelector('[name=password_confirmation]').value;
+    var msgs  = [];
+
+    if (pwd.length < 10) {
+        msgs.push('Le mot de passe doit contenir au moins 10 caractères.');
+    } else if (pwd !== conf) {
+        msgs.push('Les mots de passe ne correspondent pas.');
+    }
+
+    if (msgs.length > 0) {
+        e.preventDefault();
+        errEl.innerHTML = msgs.map(function(m) { return '• ' + m; }).join('<br>');
+        errEl.style.display = 'block';
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    errEl.style.display = 'none';
+    var btn = document.getElementById('register-submit');
+    btn.disabled = true;
+    btn.style.opacity = '0.65';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Création en cours…';
+});
 
 // ── Email validation ──────────────────────────────────────────────────────────
 var DISPOSABLE_DOMAINS = [

@@ -317,7 +317,7 @@ function coachDashboard() {
 
         async loadAthletes() {
             this.loading = true;
-            const data = await api.get('/api/athletes');
+            const data = await api.get('/api/athletes', { per_page: 200 });
             this.athletes = data.data ?? [];
             this.allEvents = [...new Map(
                 this.athletes.filter(a => a.event).map(a => [a.event.id, a.event])
@@ -353,6 +353,12 @@ function coachDashboard() {
         },
 
         async saveAthlete() {
+            if (!this.form.first_name?.trim()) { $store.toast.error('Le prénom est obligatoire.'); return; }
+            if (!this.form.last_name?.trim())  { $store.toast.error('Le nom est obligatoire.'); return; }
+            if (!this.form.birth_date)         { $store.toast.error('La date de naissance est obligatoire.'); return; }
+            if (!this.form.gender)             { $store.toast.error('Le genre est obligatoire.'); return; }
+            if (!this.form.club?.trim())       { $store.toast.error('Le club est obligatoire.'); return; }
+            if (!this.modal.editing && !this.form.event_id) { $store.toast.error('L\'événement est obligatoire.'); return; }
             this.modal.saving = true;
             try {
                 let res;

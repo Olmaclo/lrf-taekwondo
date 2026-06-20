@@ -91,12 +91,18 @@
                             </thead>
                             <tbody>
                                 @foreach($athletes as $i => $athlete)
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s;"
+                                @php $disqualified = $athlete->weigh_in_status === 'failed'; @endphp
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s;{{ $disqualified ? ' opacity: 0.5;' : '' }}"
                                     onmouseover="this.style.background='rgba(245,158,11,0.025)'" onmouseout="this.style.background='transparent'">
                                     <td style="padding: 13px 16px; color: rgba(255,255,255,0.2); font-size: 0.7rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.05em;">
                                         {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}
                                     </td>
-                                    <td style="padding: 13px 16px; color: #fff; font-weight: 600; white-space: nowrap;">{{ $athlete->full_name }}</td>
+                                    <td style="padding: 13px 16px; color: {{ $disqualified ? 'rgba(255,255,255,0.4)' : '#fff' }}; font-weight: 600; white-space: nowrap;">
+                                        {{ $athlete->full_name }}
+                                        @if($disqualified)
+                                        <span style="display:inline-flex;align-items:center;margin-left:8px;padding:2px 8px;background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.35);border-radius:3px;font-size:0.6rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:0.1em;">Hors poids</span>
+                                        @endif
+                                    </td>
                                     <td style="padding: 13px 16px; color: rgba(255,255,255,0.45);">{{ $athlete->club ?? '—' }}</td>
                                     <td style="padding: 13px 16px; color: rgba(255,255,255,0.3); font-family: monospace; font-size: 0.82rem; white-space: nowrap;">{{ $athlete->license_number ?? '—' }}</td>
                                     <td style="padding: 13px 16px; color: rgba(255,255,255,0.45); white-space: nowrap;">{{ $athlete->weight }} kg</td>

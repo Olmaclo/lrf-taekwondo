@@ -95,6 +95,9 @@
                                 <td class="text-sm" x-text="ev.athletes_count"></td>
                                 <td>
                                     <div class="flex gap-1">
+                                        <a :href="'/evenements/' + ev.slug + '/pesee'" class="btn btn-ghost btn-icon p-1.5 text-amber-400" title="Pesée" target="_blank">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                                        </a>
                                         <button @click="openEditEventModal(ev)" class="btn btn-ghost btn-icon p-1.5" title="Modifier">
                                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </button>
@@ -179,6 +182,10 @@
                         <button @click="bulkValidate()" class="btn btn-success btn-sm">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             Valider (<span x-text="selected.length"></span>)
+                        </button>
+                        <button @click="bulkReject()" class="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white focus:ring-orange-500">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Rejeter (<span x-text="selected.length"></span>)
                         </button>
                         <button @click="bulkDelete()" class="btn btn-danger btn-sm">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -1410,6 +1417,8 @@ function technicalDashboard() {
             this.eventModal = { open: true, editing: true, saving: false };
         },
         async saveEvent() {
+            if (!this.eventForm.name?.trim())       { Alpine.store('toast').error('Le nom de l\'événement est obligatoire.'); return; }
+            if (!this.eventForm.start_date)         { Alpine.store('toast').error('La date de début est obligatoire.'); return; }
             this.eventModal.saving = true;
             try {
                 const form = new FormData();
@@ -1436,21 +1445,21 @@ function technicalDashboard() {
                 const res = await r.json();
 
                 if (res.success) {
-                    $store.toast.success(res.message ?? 'Événement enregistré.');
+                    Alpine.store('toast').success(res.message ?? 'Événement enregistré.');
                     this.eventModal.open = false;
                     await this.loadEvents();
                 } else {
                     const detail = res.errors ? Object.values(res.errors)[0]?.[0] : null;
-                    $store.toast.error(detail ?? res.message ?? 'Erreur lors de la sauvegarde.');
+                    Alpine.store('toast').error(detail ?? res.message ?? 'Erreur lors de la sauvegarde.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur réseau, veuillez réessayer.');
+                Alpine.store('toast').error('Erreur réseau, veuillez réessayer.');
             } finally { this.eventModal.saving = false; }
         },
         async deleteEvent(id, name) {
             if (!confirm(`Supprimer l'événement "${name}" ?`)) return;
             const res = await api.delete(`/api/events/${id}`);
-            if (res.success) { $store.toast.success(res.message); await this.loadEvents(); }
+            if (res.success) { Alpine.store('toast').success(res.message); await this.loadEvents(); }
         },
 
         // ════════════════════════════════════════════════════════════════════
@@ -1472,26 +1481,32 @@ function technicalDashboard() {
         },
         openEditModal(athlete) { this.athleteForm = { ...athlete }; this.athleteModal = { open: true, editing: true, saving: false }; },
         async saveAthlete() {
+            if (!this.athleteForm.first_name?.trim()) { Alpine.store('toast').error('Le prénom est obligatoire.'); return; }
+            if (!this.athleteForm.last_name?.trim())  { Alpine.store('toast').error('Le nom est obligatoire.'); return; }
+            if (!this.athleteForm.birth_date)         { Alpine.store('toast').error('La date de naissance est obligatoire.'); return; }
+            if (!this.athleteForm.gender)             { Alpine.store('toast').error('Le genre est obligatoire.'); return; }
+            if (!this.athleteForm.club?.trim())       { Alpine.store('toast').error('Le club est obligatoire.'); return; }
+            if (!this.athleteModal.editing && !this.athleteForm.event_id) { Alpine.store('toast').error('L\'événement est obligatoire.'); return; }
             this.athleteModal.saving = true;
             try {
                 const res = this.athleteModal.editing
                     ? await api.put(`/api/athletes/${this.athleteForm.id}`, this.athleteForm)
                     : await api.post('/api/athletes', this.athleteForm);
                 if (res.success) {
-                    $store.toast.success(res.message ?? 'Athlète enregistré.');
+                    Alpine.store('toast').success(res.message ?? 'Athlète enregistré.');
                     this.athleteModal.open = false;
                     this.loadAthletes(); this.loadStats();
                 } else {
                     const detail = res.errors ? Object.values(res.errors)[0]?.[0] : null;
-                    $store.toast.error(detail ?? res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(detail ?? res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur réseau, veuillez réessayer.');
+                Alpine.store('toast').error('Erreur réseau, veuillez réessayer.');
             } finally { this.athleteModal.saving = false; }
         },
         async validateAthlete(id) {
             const res = await api.post(`/api/athletes/${id}/validate`);
-            if (res.success) { $store.toast.success(res.message); this.loadAthletes(); this.loadStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadAthletes(); this.loadStats(); }
         },
         openRejectModal(id, name) {
             this.rejectModal = { open: true, saving: false, athleteId: id, name, reason: '' };
@@ -1500,32 +1515,42 @@ function technicalDashboard() {
             this.rejectModal.saving = true;
             try {
                 const res = await api.post(`/api/athletes/${this.rejectModal.athleteId}/reject`, { reason: this.rejectModal.reason });
-                if (res.success) { $store.toast.success(res.message); this.rejectModal.open = false; this.loadAthletes(); this.loadStats(); }
-                else $store.toast.error(res.message ?? 'Erreur lors du rejet.');
-            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
+                if (res.success) { Alpine.store('toast').success(res.message); this.rejectModal.open = false; this.loadAthletes(); this.loadStats(); }
+                else Alpine.store('toast').error(res.message ?? 'Erreur lors du rejet.');
+            } catch (e) { Alpine.store('toast').error('Erreur réseau. Veuillez réessayer.'); }
             finally { this.rejectModal.saving = false; }
         },
         async deleteAthlete(id, name) {
             if (!confirm(`Supprimer ${name} ?`)) return;
             const res = await api.delete(`/api/athletes/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadAthletes(); this.loadStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadAthletes(); this.loadStats(); }
         },
         async bulkValidate() {
             if (this.selected.length === 0) return;
             try {
                 const res = await api.post('/api/athletes/bulk-validate', { ids: this.selected });
-                if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); }
-                else $store.toast.error(res.message ?? 'Erreur lors de la validation.');
-            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
+                if (res.success) { Alpine.store('toast').success(res.message); this.selected = []; this.loadAthletes(); }
+                else Alpine.store('toast').error(res.message ?? 'Erreur lors de la validation.');
+            } catch (e) { Alpine.store('toast').error('Erreur réseau. Veuillez réessayer.'); }
+        },
+        async bulkReject() {
+            if (this.selected.length === 0) return;
+            const reason = prompt(`Motif de rejet pour ${this.selected.length} athlète(s) (optionnel) :`);
+            if (reason === null) return; // annulé
+            try {
+                const res = await api.post('/api/athletes/bulk-reject', { ids: this.selected, reason: reason || null });
+                if (res.success) { Alpine.store('toast').success(res.message); this.selected = []; this.loadAthletes(); }
+                else Alpine.store('toast').error(res.message ?? 'Erreur lors du rejet.');
+            } catch (e) { Alpine.store('toast').error('Erreur réseau. Veuillez réessayer.'); }
         },
         async bulkDelete() {
             if (this.selected.length === 0) return;
             if (!confirm(`Supprimer définitivement ${this.selected.length} athlète(s) sélectionné(s) ?`)) return;
             try {
                 const res = await api.post('/api/athletes/bulk-delete', { ids: this.selected });
-                if (res.success) { $store.toast.success(res.message); this.selected = []; this.loadAthletes(); this.loadStats(); }
-                else $store.toast.error(res.message ?? 'Erreur lors de la suppression.');
-            } catch (e) { $store.toast.error('Erreur réseau. Veuillez réessayer.'); }
+                if (res.success) { Alpine.store('toast').success(res.message); this.selected = []; this.loadAthletes(); this.loadStats(); }
+                else Alpine.store('toast').error(res.message ?? 'Erreur lors de la suppression.');
+            } catch (e) { Alpine.store('toast').error('Erreur réseau. Veuillez réessayer.'); }
         },
         async validateByClub() {
             const club = this.filters.club;
@@ -1534,7 +1559,7 @@ function technicalDashboard() {
             const payload = { club };
             if (this.filters.event_id) payload.event_id = this.filters.event_id;
             const res = await api.post('/api/athletes/validate-by-club', payload);
-            if (res.success) { $store.toast.success(res.message); this.loadAthletes(); this.loadStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadAthletes(); this.loadStats(); }
         },
         async deleteByClub() {
             const club = this.filters.club;
@@ -1543,7 +1568,7 @@ function technicalDashboard() {
             const payload = { club };
             if (this.filters.event_id) payload.event_id = this.filters.event_id;
             const res = await api.post('/api/athletes/delete-by-club', payload);
-            if (res.success) { $store.toast.success(res.message); this.filters.club = ''; this.loadAthletes(); this.loadStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.filters.club = ''; this.loadAthletes(); this.loadStats(); }
         },
 
         // ════════════════════════════════════════════════════════════════════
@@ -1560,24 +1585,24 @@ function technicalDashboard() {
         toggleSelectAllCoaches(checked) { this.selectedCoaches = checked ? this.coaches.map(c => c.id) : []; },
         async validateCoach(id) {
             const res = await api.post(`/api/coaches/${id}/validate`);
-            if (res.success) { $store.toast.success(res.message); this.loadCoaches(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadCoaches(); }
         },
         async rejectCoach(id) {
             const res = await api.post(`/api/coaches/${id}/reject`);
-            if (res.success) { $store.toast.success(res.message); this.loadCoaches(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadCoaches(); }
         },
         async deleteCoach(id, name) {
             if (!confirm(`Supprimer le coach ${name} et tous ses athlètes ?`)) return;
             const res = await api.delete(`/api/coaches/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadCoaches(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadCoaches(); }
         },
         async bulkValidateCoaches() {
             const res = await api.post('/api/coaches/bulk-validate', { ids: this.selectedCoaches });
-            if (res.success) { $store.toast.success(res.message); this.selectedCoaches = []; this.loadCoaches(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.selectedCoaches = []; this.loadCoaches(); }
         },
         async bulkRejectCoaches() {
             const res = await api.post('/api/coaches/bulk-reject', { ids: this.selectedCoaches });
-            if (res.success) { $store.toast.success(res.message); this.selectedCoaches = []; this.loadCoaches(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.selectedCoaches = []; this.loadCoaches(); }
         },
 
         // ════════════════════════════════════════════════════════════════════
@@ -1597,39 +1622,42 @@ function technicalDashboard() {
             this.userModal = { open: true, saving: false };
         },
         async saveUser() {
+            if (!this.userForm.name?.trim())     { Alpine.store('toast').error('Le nom est obligatoire.'); return; }
+            if (!this.userForm.email?.trim())    { Alpine.store('toast').error('L\'adresse email est obligatoire.'); return; }
+            if (!this.userForm.password?.trim()) { Alpine.store('toast').error('Le mot de passe est obligatoire.'); return; }
             this.userModal.saving = true;
             try {
                 const res = await api.post('/api/users', this.userForm);
                 if (res.success) {
-                    $store.toast.success(res.message);
+                    Alpine.store('toast').success(res.message);
                     this.userModal.open = false;
                     this.loadUsers();
                 } else {
                     const detail = res.errors ? Object.values(res.errors)[0]?.[0] : null;
-                    $store.toast.error(detail ?? res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(detail ?? res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur réseau, veuillez réessayer.');
+                Alpine.store('toast').error('Erreur réseau, veuillez réessayer.');
             } finally { this.userModal.saving = false; }
         },
         async changeUserRole(id, role) {
             const res = await api.put(`/api/users/${id}/role`, { role });
-            if (res.success) { $store.toast.success(res.message); this.loadUsers(); } else { $store.toast.error(res.message); this.loadUsers(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadUsers(); } else { Alpine.store('toast').error(res.message); this.loadUsers(); }
         },
         async toggleUserValidation(id) {
             const res = await api.post(`/api/users/${id}/toggle-validation`);
-            if (res.success) { $store.toast.success(res.message); this.loadUsers(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadUsers(); }
         },
         async deleteUser(id, name) {
             if (!confirm(`Supprimer l'utilisateur ${name} ?`)) return;
             const res = await api.delete(`/api/users/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadUsers(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadUsers(); }
         },
         async sendPasswordReset(id, name, email) {
             if (!confirm(`Envoyer un email de réinitialisation de mot de passe à ${name} (${email}) ?`)) return;
             const res = await api.post(`/api/users/${id}/send-reset`, {});
-            if (res.success) { $store.toast.success(res.message); }
-            else { $store.toast.error(res.message ?? 'Erreur lors de l\'envoi.'); }
+            if (res.success) { Alpine.store('toast').success(res.message); }
+            else { Alpine.store('toast').error(res.message ?? 'Erreur lors de l\'envoi.'); }
         },
 
         // ════════════════════════════════════════════════════════════════════
@@ -1649,22 +1677,22 @@ function technicalDashboard() {
             try {
                 const data = await api.get('/api/athletes/categories-by-event', { event_id: this.drawForm.event_id });
                 this.drawCategories = data.data ?? [];
-            } catch (e) { $store.toast.error('Erreur lors du chargement des catégories.'); this.drawCategories = []; }
+            } catch (e) { Alpine.store('toast').error('Erreur lors du chargement des catégories.'); this.drawCategories = []; }
         },
         async generateDraw() {
             this.drawGenerating = true;
             try {
                 const [age_category, gender, weight_category] = this.drawForm.category_key.split('|');
                 const res = await api.post('/api/draws/generate', { event_id: this.drawForm.event_id, age_category, gender, weight_category });
-                if (res.success) { $store.toast.success('Tirage généré !'); this.loadDrawsList(); }
-                else { $store.toast.error(res.message ?? 'Erreur lors de la génération.'); }
-            } catch (e) { $store.toast.error('Erreur serveur lors de la génération du tirage.'); }
+                if (res.success) { Alpine.store('toast').success('Tirage généré !'); this.loadDrawsList(); }
+                else { Alpine.store('toast').error(res.message ?? 'Erreur lors de la génération.'); }
+            } catch (e) { Alpine.store('toast').error('Erreur serveur lors de la génération du tirage.'); }
             finally { this.drawGenerating = false; }
         },
         async deleteDraw(id) {
             if (!confirm('Supprimer ce tirage ?')) return;
             const res = await api.delete(`/api/draws/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadDrawsList(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadDrawsList(); }
         },
         async openDrawResults(drawItem) {
             this.drawResultModal = { open: true, draw: { ...drawItem, matches: null, pools: null }, loading: true };
@@ -1672,7 +1700,7 @@ function technicalDashboard() {
                 const data = await api.get(`/api/draws/${drawItem.id}`);
                 this.drawResultModal.draw = data.data;
             } catch (e) {
-                $store.toast.error('Impossible de charger les matchs.');
+                Alpine.store('toast').error('Impossible de charger les matchs.');
                 this.drawResultModal.open = false;
             } finally {
                 this.drawResultModal.loading = false;
@@ -1685,7 +1713,7 @@ function technicalDashboard() {
                 const data = await api.get(`/api/draws/${this.drawResultModal.draw.id}`);
                 this.drawResultModal.draw = data.data;
             } catch (e) {
-                $store.toast.error('Erreur lors de l\'actualisation.');
+                Alpine.store('toast').error('Erreur lors de l\'actualisation.');
             } finally {
                 this.drawResultModal.loading = false;
             }
@@ -1695,13 +1723,13 @@ function technicalDashboard() {
             try {
                 const res = await api.post(`/api/draws/${this.drawResultModal.draw.id}/set-winner`, { match_id: matchId, athlete_id: athleteId });
                 if (res.success) {
-                    $store.toast.success('Vainqueur enregistré !');
+                    Alpine.store('toast').success('Vainqueur enregistré !');
                     await this.refreshDrawResult();
                 } else {
-                    $store.toast.error(res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur lors de l\'enregistrement.');
+                Alpine.store('toast').error('Erreur lors de l\'enregistrement.');
             }
         },
         async resetMatchWinner(matchId) {
@@ -1709,13 +1737,13 @@ function technicalDashboard() {
             try {
                 const res = await api.post(`/api/draws/${this.drawResultModal.draw.id}/reset-winner`, { match_id: matchId });
                 if (res.success) {
-                    $store.toast.success('Résultat réinitialisé.');
+                    Alpine.store('toast').success('Résultat réinitialisé.');
                     await this.refreshDrawResult();
                 } else {
-                    $store.toast.error(res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur lors de la réinitialisation.');
+                Alpine.store('toast').error('Erreur lors de la réinitialisation.');
             }
         },
         drawResultRounds() {
@@ -1770,24 +1798,27 @@ function technicalDashboard() {
             this.rankingModal = { open: true, saving: false };
         },
         async saveRanking() {
+            if (!this.rankingForm.event_id)          { Alpine.store('toast').error('L\'événement est obligatoire.'); return; }
+            if (!this.rankingForm.athlete_id)        { Alpine.store('toast').error('L\'ID athlète est obligatoire.'); return; }
+            if (!this.rankingForm.category?.trim())  { Alpine.store('toast').error('La catégorie est obligatoire.'); return; }
             this.rankingModal.saving = true;
             try {
                 const res = await api.post('/api/rankings', this.rankingForm);
                 if (res.success) {
-                    $store.toast.success(res.message);
+                    Alpine.store('toast').success(res.message);
                     this.rankingModal.open = false;
                     this.loadRankings();
                 } else {
                     const detail = res.errors ? Object.values(res.errors)[0]?.[0] : null;
-                    $store.toast.error(detail ?? res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(detail ?? res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur réseau, veuillez réessayer.');
+                Alpine.store('toast').error('Erreur réseau, veuillez réessayer.');
             } finally { this.rankingModal.saving = false; }
         },
         async deleteRanking(id) {
             const res = await api.delete(`/api/rankings/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadRankings(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadRankings(); }
         },
         openRecalculateModal() { this.recalcEventId = ''; this.recalcModal = { open: true, loading: false }; },
         async recalculateRankings() {
@@ -1795,11 +1826,11 @@ function technicalDashboard() {
             try {
                 const res = await api.post('/api/rankings/recalculate', { event_id: this.recalcEventId });
                 if (res.success) {
-                    $store.toast.success(res.message);
+                    Alpine.store('toast').success(res.message);
                     this.recalcModal.open = false;
                     this.rankingEventId = this.recalcEventId;
                     this.loadRankings();
-                } else { $store.toast.error(res.message ?? 'Erreur.'); }
+                } else { Alpine.store('toast').error(res.message ?? 'Erreur.'); }
             } finally { this.recalcModal.loading = false; }
         },
 
@@ -1835,23 +1866,23 @@ function technicalDashboard() {
                 }).then(r => r.json());
 
                 if (res.success) {
-                    $store.toast.success(res.message);
+                    Alpine.store('toast').success(res.message);
                     this.galleryUploadModal = false;
                     this.galleryFiles = [];
                     this.loadGallery();
                     this.loadGalleryStats();
-                } else { $store.toast.error(res.message ?? 'Erreur.'); }
+                } else { Alpine.store('toast').error(res.message ?? 'Erreur.'); }
             } finally { this.galleryUploading = false; }
         },
         async deletePhoto(id) {
             if (!confirm('Supprimer cette photo ?')) return;
             const res = await api.delete(`/api/gallery/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadGallery(); this.loadGalleryStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadGallery(); this.loadGalleryStats(); }
         },
         async bulkDeletePhotos() {
             if (!confirm(`Supprimer ${this.selectedPhotos.length} photo(s) ?`)) return;
             const res = await api.post('/api/gallery/bulk-delete', { ids: this.selectedPhotos });
-            if (res.success) { $store.toast.success(res.message); this.selectedPhotos = []; this.loadGallery(); this.loadGalleryStats(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.selectedPhotos = []; this.loadGallery(); this.loadGalleryStats(); }
         },
         formatBytes(b) {
             if (!b) return '0 Mo';
@@ -1900,29 +1931,29 @@ function technicalDashboard() {
                 const res = await r.json();
 
                 if (res.success) {
-                    $store.toast.success(res.message ?? 'Article enregistré.');
+                    Alpine.store('toast').success(res.message ?? 'Article enregistré.');
                     this.postModal.open = false;
                     this.loadBlogPosts();
                 } else {
                     const detail = res.errors ? Object.values(res.errors)[0]?.[0] : null;
-                    $store.toast.error(detail ?? res.message ?? 'Erreur.');
+                    Alpine.store('toast').error(detail ?? res.message ?? 'Erreur.');
                 }
             } catch (e) {
-                $store.toast.error('Erreur réseau, veuillez réessayer.');
+                Alpine.store('toast').error('Erreur réseau, veuillez réessayer.');
             } finally { this.postModal.saving = false; }
         },
         async publishPost(id) {
             const res = await api.post(`/api/blog/${id}/publish`);
-            if (res.success) { $store.toast.success(res.message); this.loadBlogPosts(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadBlogPosts(); }
         },
         async archivePost(id) {
             const res = await api.post(`/api/blog/${id}/archive`);
-            if (res.success) { $store.toast.success(res.message); this.loadBlogPosts(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadBlogPosts(); }
         },
         async deletePost(id, title) {
             if (!confirm(`Supprimer l'article "${title}" ?`)) return;
             const res = await api.delete(`/api/blog/${id}`);
-            if (res.success) { $store.toast.success(res.message); this.loadBlogPosts(); }
+            if (res.success) { Alpine.store('toast').success(res.message); this.loadBlogPosts(); }
         },
     };
 }

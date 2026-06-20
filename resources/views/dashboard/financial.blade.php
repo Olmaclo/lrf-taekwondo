@@ -172,6 +172,41 @@
         </div>
     </div>
 
+    {{-- ── Bulk Temp-Validate Modal ─────────────────────────────────────── --}}
+    <div x-show="bulkTempModal.open"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         class="modal-backdrop" @keydown.escape.window="bulkTempModal.open = false" style="display:none">
+        <div @click.stop class="modal"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+            <div class="modal-header">
+                <h3 class="font-bold text-surface-50">Pré-valider les paiements</h3>
+                <button @click="bulkTempModal.open = false" class="btn btn-ghost btn-icon p-1">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="modal-body space-y-4">
+                <p class="text-sm text-surface-300">
+                    <span class="font-semibold text-surface-100" x-text="selected.length"></span> athlète(s) sélectionné(s) seront passés en statut <span class="text-amber-400 font-medium">Pré-validé</span>.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Date limite de validation définitive <span class="text-surface-500">(optionnel)</span></label>
+                    <input type="date" x-model="bulkTempModal.deadline" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes <span class="text-surface-500">(optionnel)</span></label>
+                    <textarea x-model="bulkTempModal.notes" rows="2" class="form-input resize-none" placeholder="Ex : en attente de confirmation de virement…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="bulkTempModal.open = false" class="btn btn-secondary">Annuler</button>
+                <button @click="confirmBulkTempValidate()" :disabled="bulkTempModal.saving" class="btn btn-warning">
+                    <div x-show="bulkTempModal.saving" class="spinner w-4 h-4"></div>
+                    <span x-text="bulkTempModal.saving ? 'Traitement…' : 'Confirmer la pré-validation'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- ── Payment Modal ────────────────────────────────────────────────── --}}
     <div x-show="payModal.open"
          x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
@@ -234,19 +269,15 @@ function financialDashboard() {
         filters: { search: '', event_id: '', payment_status: '' },
         payModal: { open: false, saving: false, athleteId: null, athleteName: '' },
         payForm: { amount: '', payment_method: 'cash', transaction_ref: '', notes: '' },
+        bulkTempModal: { open: false, saving: false, deadline: '', notes: '' },
 
         get filtered() {
-            const s = this.filters.search.toLowerCase();
-            return this.athletes.filter(a => {
-                const matchSearch = !s || (a.full_name ?? '').toLowerCase().includes(s) || (a.club ?? '').toLowerCase().includes(s);
-                const matchStatus = !this.filters.payment_status || a.payment_status === this.filters.payment_status;
-                return matchSearch && matchStatus;
-            });
+            return this.athletes;
         },
 
         async init() {
             await Promise.all([this.loadAthletes(), this.loadEvents(), this.loadStats()]);
-            this.$watch('filters.search', () => {});
+            this.$watch('filters.search', () => this.loadAthletes());
         },
 
         async loadStats() {
@@ -256,9 +287,14 @@ function financialDashboard() {
 
         async loadAthletes() {
             this.loading = true;
-            const params = { event_id: this.filters.event_id };
+            const params = {
+                event_id:       this.filters.event_id,
+                payment_status: this.filters.payment_status,
+                search:         this.filters.search,
+            };
             const data = await api.get('/api/athletes', params);
             this.athletes = data.data ?? [];
+            this.selected = [];
             this.loading = false;
         },
 
@@ -303,9 +339,29 @@ function financialDashboard() {
             else $store.toast.error(res.message);
         },
 
-        async bulkTempValidate() {
-            const res = await api.post('/api/financial/bulk-temp-validate', { ids: this.selected });
-            if (res.success) { $store.toast.success(res.message); this.selected = []; await Promise.all([this.loadAthletes(), this.loadStats()]); }
+        bulkTempValidate() {
+            this.bulkTempModal = { open: true, saving: false, deadline: '', notes: '' };
+        },
+
+        async confirmBulkTempValidate() {
+            this.bulkTempModal.saving = true;
+            try {
+                const res = await api.post('/api/financial/bulk-temp-validate', {
+                    ids:      this.selected,
+                    deadline: this.bulkTempModal.deadline || null,
+                    notes:    this.bulkTempModal.notes || null,
+                });
+                if (res.success) {
+                    $store.toast.success(res.message);
+                    this.bulkTempModal.open = false;
+                    this.selected = [];
+                    await Promise.all([this.loadAthletes(), this.loadStats()]);
+                } else {
+                    $store.toast.error(res.message ?? 'Erreur.');
+                }
+            } finally {
+                this.bulkTempModal.saving = false;
+            }
         },
 
         async bulkDefinitiveValidate() {

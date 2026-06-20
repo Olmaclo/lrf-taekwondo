@@ -41,8 +41,34 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Chargement async des polices — non bloquant pour le rendu --}}
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+    </noscript>
+    @stack('head')
+    @php
+        $viteManifestPath = public_path('build/manifest.json');
+        $viteCssHref = null;
+        $viteJsHref  = null;
+        if (file_exists($viteManifestPath)) {
+            $m = json_decode(file_get_contents($viteManifestPath), true);
+            $viteCssHref = asset('build/' . ($m['resources/css/public.css']['file'] ?? ''));
+            $viteJsHref  = asset('build/' . ($m['resources/js/app.js']['file']  ?? ''));
+        }
+    @endphp
+    @if($viteCssHref && $viteJsHref)
+        {{-- CSS non-bloquant : téléchargé en parallèle, n'empêche pas le rendu --}}
+        <link rel="preload" as="style" href="{{ $viteCssHref }}"
+              onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="{{ $viteCssHref }}"></noscript>
+        <script type="module" src="{{ $viteJsHref }}"></script>
+    @else
+        {{-- Fallback mode développement (Vite HMR) --}}
+        @vite(['resources/css/public.css', 'resources/js/app.js'])
+    @endif
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         html, body { background: #000; color: #fff; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; margin: 0; padding: 0; }
@@ -50,60 +76,24 @@
         [x-cloak] { display: none !important; }
 
         /* ── Navbar ─────────────────────────────────────────────────────────── */
-        #navbar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-            transition: background 0.4s, box-shadow 0.4s;
-        }
-        #navbar .nav-inner {
-            height: 80px; max-width: 1280px; margin: 0 auto; padding: 0 2.5rem;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        #navbar.scrolled {
-            background: rgba(0,0,0,0.97);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 1px 0 rgba(245,158,11,0.15), 0 4px 32px rgba(0,0,0,0.5);
-        }
+        #navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; transition: background 0.4s, box-shadow 0.4s; }
+        #navbar .nav-inner { height: 80px; max-width: 1280px; margin: 0 auto; padding: 0 2.5rem; display: flex; align-items: center; justify-content: space-between; }
+        #navbar.scrolled { background: rgba(0,0,0,0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 1px 0 rgba(245,158,11,0.15), 0 4px 32px rgba(0,0,0,0.5); }
 
-        /* Nav links */
-        .nav-link {
-            color: rgba(255,255,255,0.38);
-            font-size: 0.78rem; font-weight: 500; text-decoration: none;
-            padding: 6px 14px; border-radius: 6px;
-            transition: color 0.2s; position: relative; letter-spacing: 0.02em;
-        }
-        .nav-link::after {
-            content: ''; position: absolute; bottom: -2px;
-            left: 50%; right: 50%; height: 1px; background: #f59e0b;
-            transition: left 0.25s ease, right 0.25s ease;
-        }
+        .nav-link { color: rgba(255,255,255,0.38); font-size: 0.78rem; font-weight: 500; text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: color 0.2s; position: relative; letter-spacing: 0.02em; }
+        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 50%; right: 50%; height: 1px; background: #f59e0b; transition: left 0.25s ease, right 0.25s ease; }
         .nav-link:hover { color: #fff; }
         .nav-link:hover::after, .nav-link.active::after { left: 14px; right: 14px; }
         .nav-link.active { color: #fff; }
 
-        /* CTA button */
-        .nav-cta {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: #f59e0b; color: #000;
-            font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
-            padding: 9px 22px; border-radius: 6px; text-decoration: none;
-            transition: background 0.2s, box-shadow 0.2s;
-            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
-        }
+        .nav-cta { display: inline-flex; align-items: center; gap: 8px; background: #f59e0b; color: #000; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 22px; border-radius: 6px; text-decoration: none; transition: background 0.2s, box-shadow 0.2s; clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%); }
         .nav-cta:hover { background: #fbbf24; box-shadow: 0 0 24px rgba(245,158,11,0.35); }
 
         /* Mobile menu */
         #mobile-menu { display: none; background: #050505; border-bottom: 1px solid rgba(255,255,255,0.07); }
         #mobile-menu.open { display: block; }
-        .mobile-nav-link {
-            display: flex; align-items: center; gap: 14px;
-            color: rgba(255,255,255,0.4); font-size: 0.875rem; font-weight: 500;
-            text-decoration: none; padding: 15px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05); transition: color 0.15s;
-        }
-        .mobile-nav-link::before {
-            content: ''; width: 18px; height: 1px; background: rgba(255,255,255,0.12);
-            flex-shrink: 0; transition: background 0.15s, width 0.2s;
-        }
+        .mobile-nav-link { display: flex; align-items: center; gap: 14px; color: rgba(255,255,255,0.4); font-size: 0.875rem; font-weight: 500; text-decoration: none; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); transition: color 0.15s; }
+        .mobile-nav-link::before { content: ''; width: 18px; height: 1px; background: rgba(255,255,255,0.12); flex-shrink: 0; transition: background 0.15s, width 0.2s; }
         .mobile-nav-link:hover { color: #fff; }
         .mobile-nav-link:hover::before { background: #f59e0b; width: 28px; }
         .mobile-nav-link.active-m { color: #fff; }
@@ -111,29 +101,15 @@
 
         /* ── Footer ─────────────────────────────────────────────────────────── */
         #footer { background: #050505; position: relative; overflow: hidden; }
-        #footer::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 30%, rgba(245,158,11,0.5) 70%, transparent 100%);
-        }
-        .footer-title {
-            color: rgba(255,255,255,0.18); font-size: 0.58rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.24em; margin-bottom: 1.5rem;
-            display: flex; align-items: center; gap: 10px;
-        }
+        #footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.5) 30%, rgba(245,158,11,0.5) 70%, transparent 100%); }
+        .footer-title { color: rgba(255,255,255,0.18); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.24em; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
         .footer-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
-        .footer-link {
-            color: rgba(255,255,255,0.28); font-size: 0.78rem; text-decoration: none;
-            transition: color 0.2s; display: flex; align-items: center; gap: 0; padding: 5px 0;
-            position: relative; overflow: hidden;
-        }
-        .footer-link::before {
-            content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-            width: 0; height: 1px; background: #f59e0b; transition: width 0.25s ease;
-        }
+        .footer-link { color: rgba(255,255,255,0.28); font-size: 0.78rem; text-decoration: none; transition: color 0.2s; display: flex; align-items: center; gap: 0; padding: 5px 0; position: relative; overflow: hidden; }
+        .footer-link::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 0; height: 1px; background: #f59e0b; transition: width 0.25s ease; }
         .footer-link:hover { color: #fff; padding-left: 18px; transition: color 0.2s, padding-left 0.25s; }
         .footer-link:hover::before { width: 14px; }
 
-        /* ── Toast ─────────────────────────────────────────────────────────── */
+        /* ── Toast flash ────────────────────────────────────────────────────── */
         #flash-toast { position: fixed; bottom: 28px; right: 28px; z-index: 100; max-width: 380px; }
         @keyframes slideUpFade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         #flash-toast > div { animation: slideUpFade 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -157,12 +133,13 @@
         {{-- Desktop nav --}}
         @php
             $navLinks = [
-                ['route' => 'public.home',    'label' => 'Accueil'],
-                ['route' => 'public.events',  'label' => 'Événements'],
-                ['route' => 'public.gallery', 'label' => 'Galerie'],
-                ['route' => 'public.blog',    'label' => 'Actualités'],
-                ['route' => 'public.verify',  'label' => 'Mon inscription'],
-                ['route' => 'public.contact', 'label' => 'Contact'],
+                ['route' => 'public.home',     'label' => 'Accueil'],
+                ['route' => 'public.events',   'label' => 'Événements'],
+                ['route' => 'public.rankings', 'label' => 'Classements'],
+                ['route' => 'public.gallery',  'label' => 'Galerie'],
+                ['route' => 'public.blog',     'label' => 'Actualités'],
+                ['route' => 'public.verify',   'label' => 'Mon inscription'],
+                ['route' => 'public.contact',  'label' => 'Contact'],
             ];
         @endphp
         <nav style="display: none; align-items: center; gap: 4px;" id="desktop-nav">
@@ -392,6 +369,7 @@ function checkNavVisibility() {
 }
 checkNavVisibility();
 window.addEventListener('resize', checkNavVisibility);
+
 </script>
 
 </body>
