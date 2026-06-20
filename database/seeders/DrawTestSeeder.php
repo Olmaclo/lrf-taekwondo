@@ -228,6 +228,19 @@ class DrawTestSeeder extends Seeder
         foreach ($allGroups as $group) {
             try {
                 $draw = $drawService->generate($event, $group['age'], $group['gender'], $group['weight']);
+
+                // Populate pool winners so the finals bracket shows real names
+                if ($draw->use_pools && $draw->pools) {
+                    $pools = $draw->pools;
+                    foreach ($pools['pools'] as &$pool) {
+                        $pool['winner']    = $pool['athletes'][0] ?? null;
+                        $pool['runner_up'] = $pool['athletes'][1] ?? null;
+                    }
+                    unset($pool);
+                    $draw->pools = $pools;
+                    $draw->save();
+                }
+
                 $format = $draw->use_pools ? 'poules' : 'élim. directe';
                 $this->command->info("✓ {$group['age']} {$group['gender']} {$group['weight']} — {$draw->total_athletes} athlètes ({$format})");
             } catch (\Throwable $e) {

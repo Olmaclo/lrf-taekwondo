@@ -24,7 +24,7 @@ class NewPasswordController extends Controller
         $request->validate([
             'token'    => ['required'],
             'email'    => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::min(8)],
+            'password' => ['required', 'confirmed', Rules\Password::min(10)->letters()->numbers()],
         ], [
             'email.required'    => 'L\'adresse e-mail est requise.',
             'email.email'       => 'Adresse e-mail invalide.',

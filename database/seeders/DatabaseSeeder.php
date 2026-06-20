@@ -21,6 +21,11 @@ class DatabaseSeeder extends Seeder
             Role::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
+        if (! app()->environment('local', 'testing')) {
+            $this->command->warn('Environnement de production détecté — données de démonstration ignorées.');
+            return;
+        }
+
         // ── Admin ──────────────────────────────────────────────────────────────
         $admin = User::firstOrCreate(
             ['email' => 'admin@sotaemad.com'],

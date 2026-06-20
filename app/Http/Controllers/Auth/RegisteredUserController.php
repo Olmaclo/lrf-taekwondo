@@ -51,7 +51,7 @@ class RegisteredUserController extends Controller
             'federal_code'   => ['required', 'digits_between:1,20'],
         ], [
             'email.email'  => 'Cette adresse email est invalide ou le domaine n\'existe pas.',
-            'email.unique' => 'Cette adresse email est déjà associée à un compte.',
+            'email.unique' => 'Cette adresse email ne peut pas être utilisée pour cette inscription.',
         ]);
 
         $user = User::create([

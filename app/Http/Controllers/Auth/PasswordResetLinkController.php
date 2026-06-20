@@ -38,11 +38,7 @@ class PasswordResetLinkController extends Controller
 
         $status = Password::sendResetLink($request->only('email'));
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', 'Un lien de réinitialisation a été envoyé à votre adresse e-mail.');
-        }
-
-        return back()->withInput($request->only('email'))
-            ->withErrors(['email' => __($status)]);
+        // Même message que l'email existe ou non — évite l'énumération de comptes
+        return back()->with('status', 'Si cette adresse est associée à un compte, un lien de réinitialisation vient d\'être envoyé.');
     }
 }
