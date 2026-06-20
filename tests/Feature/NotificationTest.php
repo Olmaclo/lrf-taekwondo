@@ -41,7 +41,7 @@ it('sends AthleteValidatedMail to coach when athlete is validated', function () 
         ->postJson("/api/athletes/{$athlete->id}/validate")
         ->assertOk();
 
-    Mail::assertSent(AthleteValidatedMail::class, fn ($m) => $m->hasTo($this->coach->email));
+    Mail::assertQueued(AthleteValidatedMail::class, fn ($m) => $m->hasTo($this->coach->email));
 });
 
 it('sends AthleteRejectedMail to coach when athlete is rejected', function () {
@@ -55,7 +55,7 @@ it('sends AthleteRejectedMail to coach when athlete is rejected', function () {
         ->postJson("/api/athletes/{$athlete->id}/reject", ['reason' => 'Dossier incomplet'])
         ->assertOk();
 
-    Mail::assertSent(AthleteRejectedMail::class, fn ($m) => $m->hasTo($this->coach->email));
+    Mail::assertQueued(AthleteRejectedMail::class, fn ($m) => $m->hasTo($this->coach->email));
 });
 
 it('sends CoachValidatedMail when coach account is approved', function () {
@@ -63,7 +63,7 @@ it('sends CoachValidatedMail when coach account is approved', function () {
         ->postJson("/api/coaches/{$this->coach->id}/validate")
         ->assertOk();
 
-    Mail::assertSent(CoachValidatedMail::class, fn ($m) => $m->hasTo($this->coach->email));
+    Mail::assertQueued(CoachValidatedMail::class, fn ($m) => $m->hasTo($this->coach->email));
 });
 
 it('sends NewCoachRegisteredMail to admins on coach registration', function () {
@@ -83,7 +83,7 @@ it('sends NewCoachRegisteredMail to admins on coach registration', function () {
         'federal_code'   => '12345',
     ])->assertRedirect();
 
-    Mail::assertSent(NewCoachRegisteredMail::class, fn ($m) => $m->hasTo($admin->email));
+    Mail::assertQueued(NewCoachRegisteredMail::class, fn ($m) => $m->hasTo($admin->email));
 });
 
 it('no mail sent when athlete has no coach email', function () {

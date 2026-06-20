@@ -13,17 +13,15 @@ beforeEach(function () {
     Role::firstOrCreate(['name' => 'financial', 'guard_name' => 'web']);
 });
 
-it('shows the login page', function () {
-    $response = $this->get('/');
-    $response->assertStatus(200);
-    $response->assertSee('Connexion');
+it('shows the home page to guests', function () {
+    $this->get('/')->assertStatus(200);
 });
 
-it('redirects authenticated users away from login', function () {
+it('shows the home page to authenticated users', function () {
     $user = User::factory()->create();
     $user->assignRole('admin');
 
-    $this->actingAs($user)->get('/')->assertRedirect('/dashboard');
+    $this->actingAs($user)->get('/')->assertStatus(200);
 });
 
 it('logs in with valid credentials', function () {
@@ -57,5 +55,5 @@ it('logs out an authenticated user', function () {
 });
 
 it('redirects unauthenticated users to login', function () {
-    $this->get('/dashboard')->assertRedirect('/');
+    $this->get('/dashboard')->assertRedirect('/login');
 });

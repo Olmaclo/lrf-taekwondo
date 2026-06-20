@@ -108,6 +108,61 @@ it('winner propagates to next round', function () {
     expect($final['athlete1']['id'] ?? $final['athlete2']['id'])->toBe($winnerId);
 });
 
+// ── Propagation safety (bug fix: ne pas auto-avancer quand un feeder attend) ──
+
+it('does not auto-advance winner as bye when opponent slot has a feeder match', function () {
+    // 4 athlètes : sf1 (pos 1) et sf2 (pos 2) → finale (pos 1)
+    // Après la victoire en sf1, la finale doit avoir athlete1 rempli MAIS pas de winner
+    // car sf2 n'est pas encore joué — ce n'est pas un BYE
+    $draw     = $this->service->generateDirectElimination(athletes(4));
+    $sf1      = collect($draw['matches'])->firstWhere(fn ($m) => $m['round'] === 2 && $m['position'] === 1);
+    $winnerId = $sf1['athlete1']['id'];
+
+    $draw  = $this->service->setMatchWinnerInArray($draw, $sf1['id'], $winnerId);
+    $final = collect($draw['matches'])->firstWhere('round', 1);
+
+    // La finale a athlete1 rempli (gagnant sf1 propagé)
+    expect($final['athlete1']['id'])->toBe($winnerId);
+    // Mais le winner de la finale NE doit PAS être auto-rempli (sf2 pas encore joué)
+    expect($final['winner_id'] ?? null)->toBeNull();
+    expect($final['is_bye'] ?? false)->toBeFalse();
+});
+
+it('auto-advances only when opponent slot truly has no feeder match', function () {
+    // 3 athlètes : bracket de taille 4 avec 1 BYE
+    // Le BYE doit auto-avancer l'athlète qui y fait face
+    $draw  = $this->service->generateDirectElimination(athletes(3));
+    $byes  = collect($draw['matches'])->filter(fn ($m) => $m['is_bye'] === true);
+
+    expect($byes)->not->toBeEmpty();
+    // Tous les matchs BYE doivent avoir un winner propagé
+    foreach ($byes as $bye) {
+        expect($bye['winner_id'] ?? null)->not->toBeNull();
+    }
+});
+
+it('full 8-athlete bracket propagates all winners correctly', function () {
+    $draw    = $this->service->generateDirectElimination(athletes(8));
+    $matches = collect($draw['matches']);
+
+    // 8 athlètes → 7 matchs (4 quarts + 2 demies + 1 finale)
+    expect($matches)->toHaveCount(7);
+
+    // Simuler tous les matchs du premier round
+    $quarterfinals = $matches->where('round', 3);
+    foreach ($quarterfinals as $qf) {
+        $draw = $this->service->setMatchWinnerInArray($draw, $qf['id'], $qf['athlete1']['id']);
+    }
+
+    // Les demi-finales doivent toutes avoir leurs 2 athlètes remplis
+    $semis = collect($draw['matches'])->where('round', 2);
+    foreach ($semis as $semi) {
+        expect($semi['athlete1'])->not->toBeNull();
+        expect($semi['athlete2'])->not->toBeNull();
+        expect($semi['winner_id'] ?? null)->toBeNull(); // pas encore joué
+    }
+});
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function athletes(int $count): array

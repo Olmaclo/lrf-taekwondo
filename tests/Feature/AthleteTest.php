@@ -61,7 +61,7 @@ it('coach can register an athlete', function () {
 
     $this->actingAs($this->coach)
         ->postJson('/api/athletes', $payload)
-        ->assertOk()
+        ->assertStatus(201)
         ->assertJson(['success' => true]);
 
     $this->assertDatabaseHas('athletes', [
@@ -185,6 +185,7 @@ it('technical staff can bulk validate athletes', function () {
     $athletes = Athlete::factory(3)->create([
         'event_id'            => $this->event->id,
         'registration_status' => 'pending',
+        'weight_category'     => '-68kg',
     ]);
     $ids = $athletes->pluck('id')->toArray();
 
@@ -196,4 +197,226 @@ it('technical staff can bulk validate athletes', function () {
     foreach ($ids as $id) {
         expect(Athlete::find($id)->registration_status)->toBe('validated');
     }
+});
+
+it('bulk validate skips athletes without weight_category', function () {
+    $withCat    = Athlete::factory()->create(['event_id' => $this->event->id, 'registration_status' => 'pending', 'weight_category' => '-68kg']);
+    $withoutCat = Athlete::factory()->create(['event_id' => $this->event->id, 'registration_status' => 'pending', 'weight_category' => null]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/bulk-validate', ['ids' => [$withCat->id, $withoutCat->id]])
+        ->assertOk()
+        ->assertJsonFragment(['validated' => 1]);
+
+    expect($withCat->fresh()->registration_status)->toBe('validated');
+    expect($withoutCat->fresh()->registration_status)->toBe('pending');
+});
+
+it('coach cannot bulk validate athletes', function () {
+    $athlete = Athlete::factory()->create(['event_id' => $this->event->id, 'registration_status' => 'pending']);
+
+    $this->actingAs($this->coach)
+        ->postJson('/api/athletes/bulk-validate', ['ids' => [$athlete->id]])
+        ->assertForbidden();
+});
+
+it('athlete nationality defaults to Sénégalaise when not provided', function () {
+    $payload = [
+        'first_name' => 'Seydou',
+        'last_name'  => 'Traoré',
+        'birth_date' => '2003-05-10',
+        'gender'     => 'M',
+        'club'       => 'Test Club',
+        'event_id'   => $this->event->id,
+    ];
+
+    $this->actingAs($this->coach)
+        ->postJson('/api/athletes', $payload)
+        ->assertStatus(201);
+
+    $this->assertDatabaseHas('athletes', [
+        'first_name'  => 'Seydou',
+        'nationality' => 'Sénégalaise',
+    ]);
+});
+
+it('prevents duplicate athlete registration in the same event', function () {
+    Athlete::factory()->create([
+        'event_id'   => $this->event->id,
+        'first_name' => 'Oumar',
+        'last_name'  => 'Diallo',
+    ]);
+
+    $this->actingAs($this->coach)
+        ->postJson('/api/athletes', [
+            'first_name' => 'Oumar',
+            'last_name'  => 'Diallo',
+            'birth_date' => '2003-05-10',
+            'gender'     => 'M',
+            'club'       => 'Test Club',
+            'event_id'   => $this->event->id,
+        ])
+        ->assertStatus(422);
+});
+
+// ── Show ──────────────────────────────────────────────────────────────────────
+
+it('technical staff can view an athlete', function () {
+    $athlete = Athlete::factory()->create(['event_id' => $this->event->id]);
+
+    $this->actingAs($this->technical)
+        ->getJson("/api/athletes/{$athlete->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $athlete->id);
+});
+
+it('coach can view their own athlete', function () {
+    $athlete = Athlete::factory()->create([
+        'event_id' => $this->event->id,
+        'coach_id' => $this->coach->id,
+    ]);
+
+    $this->actingAs($this->coach)
+        ->getJson("/api/athletes/{$athlete->id}")
+        ->assertOk();
+});
+
+it('coach cannot view another coach\'s athlete', function () {
+    $other = User::factory()->create();
+    $other->assignRole('coach');
+    $athlete = Athlete::factory()->create([
+        'event_id' => $this->event->id,
+        'coach_id' => $other->id,
+    ]);
+
+    $this->actingAs($this->coach)
+        ->getJson("/api/athletes/{$athlete->id}")
+        ->assertForbidden();
+});
+
+// ── Update ────────────────────────────────────────────────────────────────────
+
+it('technical staff can update an athlete', function () {
+    $athlete = Athlete::factory()->create(['event_id' => $this->event->id]);
+
+    $this->actingAs($this->technical)
+        ->putJson("/api/athletes/{$athlete->id}", ['club' => 'Nouveau Club TK'])
+        ->assertOk()
+        ->assertJson(['success' => true]);
+
+    expect($athlete->fresh()->club)->toBe('Nouveau Club TK');
+});
+
+it('coach can update their own athlete', function () {
+    $athlete = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'coach_id'            => $this->coach->id,
+        'registration_status' => 'pending',
+    ]);
+
+    $this->actingAs($this->coach)
+        ->putJson("/api/athletes/{$athlete->id}", ['club' => 'Club Modifié'])
+        ->assertOk();
+
+    expect($athlete->fresh()->club)->toBe('Club Modifié');
+});
+
+it('coach cannot update another coach\'s athlete', function () {
+    $other = User::factory()->create();
+    $other->assignRole('coach');
+    $athlete = Athlete::factory()->create([
+        'event_id' => $this->event->id,
+        'coach_id' => $other->id,
+    ]);
+
+    $this->actingAs($this->coach)
+        ->putJson("/api/athletes/{$athlete->id}", ['club' => 'Intrus'])
+        ->assertForbidden();
+});
+
+// ── Bulk reject ───────────────────────────────────────────────────────────────
+
+it('technical staff can bulk reject athletes', function () {
+    $athletes = Athlete::factory(3)->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'pending',
+    ]);
+    $ids = $athletes->pluck('id')->toArray();
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/bulk-reject', ['ids' => $ids, 'reason' => 'Documents manquants'])
+        ->assertOk()
+        ->assertJson(['success' => true]);
+
+    foreach ($ids as $id) {
+        $a = Athlete::find($id);
+        expect($a->registration_status)->toBe('rejected');
+        expect($a->rejection_reason)->toBe('Documents manquants');
+    }
+});
+
+it('bulk reject returns 422 when all athletes are already rejected', function () {
+    $athlete = Athlete::factory()->create([
+        'event_id'            => $this->event->id,
+        'registration_status' => 'rejected',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/bulk-reject', ['ids' => [$athlete->id]])
+        ->assertStatus(422);
+});
+
+// ── Validate by club ──────────────────────────────────────────────────────────
+
+it('technical staff can validate all athletes from a club', function () {
+    Athlete::factory(3)->create([
+        'event_id'            => $this->event->id,
+        'club'                => 'Club Alpha TK',
+        'registration_status' => 'pending',
+        'weight_category'     => '-68kg',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/validate-by-club', [
+            'club'     => 'Club Alpha TK',
+            'event_id' => $this->event->id,
+        ])
+        ->assertOk()
+        ->assertJsonFragment(['validated' => 3]);
+
+    expect(
+        Athlete::where('club', 'Club Alpha TK')->where('registration_status', 'validated')->count()
+    )->toBe(3);
+});
+
+it('validate-by-club skips already validated athletes', function () {
+    Athlete::factory(2)->create([
+        'event_id'            => $this->event->id,
+        'club'                => 'Club Beta TK',
+        'registration_status' => 'validated',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/validate-by-club', ['club' => 'Club Beta TK'])
+        ->assertOk()
+        ->assertJsonFragment(['validated' => 0]);
+});
+
+// ── Delete by club ────────────────────────────────────────────────────────────
+
+it('technical staff can delete all athletes from a club', function () {
+    Athlete::factory(2)->create([
+        'event_id' => $this->event->id,
+        'club'     => 'Club Gamma TK',
+    ]);
+
+    $this->actingAs($this->technical)
+        ->postJson('/api/athletes/delete-by-club', [
+            'club'     => 'Club Gamma TK',
+            'event_id' => $this->event->id,
+        ])
+        ->assertOk()
+        ->assertJsonFragment(['deleted' => 2]);
+
+    expect(Athlete::where('club', 'Club Gamma TK')->count())->toBe(0);
 });
