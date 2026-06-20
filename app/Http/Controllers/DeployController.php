@@ -40,6 +40,8 @@ class DeployController extends Controller
             'queue:flush'        => ['queue:work', ['--stop-when-empty' => true, '--max-time' => 30, '--tries' => 3]],
             // Applique les migrations en attente (le déploiement Git ne migre pas).
             'migrate'            => ['migrate', ['--force' => true]],
+            // Recrée le lien symbolique public/storage → storage/app/public.
+            'storage:link'       => ['storage:link', ['--force' => true]],
         ];
         $command = (string) ($request->input('command') ?? '');
         if ($command !== '' && isset($allowed[$command])) {
