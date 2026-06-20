@@ -80,21 +80,57 @@
             @endif
         </div>
 
-        {{-- Panneau latéral : chat (teaser Phase 2) --}}
-        <aside style="display: flex; flex-direction: column;">
-            <div style="background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; height: 100%; min-height: 480px; display: flex; flex-direction: column;">
-                <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between;">
-                    <span style="color: #fff; font-weight: 700; font-size: 0.85rem; font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.02em;">💬 Chat en direct</span>
-                    <span style="color: rgba(255,255,255,0.25); font-size: 0.68rem; border: 1px solid rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 99px;">Bientôt</span>
+        {{-- Panneau latéral : chat en direct --}}
+        <aside style="display: flex; flex-direction: column;"
+               x-data="liveChat({{ $liveSession->id }}, {{ $isLive ? 'true' : 'false' }})" x-init="init()">
+            <div style="background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; height: 100%; min-height: 480px; max-height: 72vh; display: flex; flex-direction: column;">
+
+                {{-- Header --}}
+                <div style="padding: 0.9rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between;">
+                    <span style="color: #fff; font-weight: 700; font-size: 0.85rem; font-family: 'Space Grotesk', sans-serif;">💬 Chat en direct</span>
+                    <span style="color: rgba(255,255,255,0.3); font-size: 0.7rem;" x-text="messages.length + ' message' + (messages.length > 1 ? 's' : '')"></span>
                 </div>
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1.5rem; gap: 1rem;">
-                    <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); display: flex; align-items: center; justify-content: center;">
-                        <svg style="width: 26px; height: 26px; color: #f59e0b;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>
-                    </div>
-                    <div>
-                        <div style="color: rgba(255,255,255,0.75); font-weight: 600; font-size: 0.9rem; margin-bottom: 6px;">Le chat arrive très vite</div>
-                        <p style="color: rgba(255,255,255,0.3); font-size: 0.78rem; line-height: 1.6; max-width: 220px;">Discute en direct avec un pseudo, envoie des réactions et participe aux sondages pendant le combat. 🥋</p>
-                    </div>
+
+                {{-- Messages --}}
+                <div x-ref="box" style="flex: 1; overflow-y: auto; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.7rem;">
+                    <template x-if="messages.length === 0">
+                        <div style="color: rgba(255,255,255,0.22); font-size: 0.8rem; text-align: center; margin: auto;">Sois le premier à écrire ! 👋</div>
+                    </template>
+                    <template x-for="m in messages" :key="m.id">
+                        <div style="font-size: 0.85rem; line-height: 1.4;">
+                            <span :style="'color:' + pseudoColor(m.pseudo) + '; font-weight: 700;'" x-text="m.pseudo"></span>
+                            <span style="color: rgba(255,255,255,0.2); font-size: 0.62rem; margin-left: 6px;" x-text="m.time"></span>
+                            <div style="color: rgba(255,255,255,0.82); word-break: break-word; margin-top: 1px;" x-text="m.message"></div>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Footer --}}
+                <div style="border-top: 1px solid rgba(255,255,255,0.07); padding: 0.85rem 1rem;">
+                    <template x-if="!isLive">
+                        <div style="color: rgba(255,255,255,0.3); font-size: 0.75rem; text-align: center;">Le chat est fermé — replay</div>
+                    </template>
+
+                    <template x-if="isLive && !pseudoSet">
+                        <form @submit.prevent="savePseudo()" style="display: flex; gap: 8px;">
+                            <input x-model="pseudo" maxlength="40" placeholder="Choisis un pseudo…"
+                                   style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 9px 12px; color: #fff; font-size: 0.82rem; outline: none;">
+                            <button type="submit" style="background: #f59e0b; color: #000; font-weight: 700; font-size: 0.78rem; padding: 9px 16px; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">Rejoindre</button>
+                        </form>
+                    </template>
+
+                    <template x-if="isLive && pseudoSet">
+                        <form @submit.prevent="send()" style="display: flex; gap: 8px; align-items: center;">
+                            <input x-model="draft" maxlength="500" placeholder="Écris un message…"
+                                   style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 9px 12px; color: #fff; font-size: 0.85rem; outline: none;"
+                                   onfocus="this.style.borderColor='#f59e0b'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                            <button type="submit" :disabled="sending"
+                                    style="background: #f59e0b; color: #000; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border: none; border-radius: 8px; cursor: pointer; flex-shrink: 0;">
+                                <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.27 3.13a.5.5 0 01.67-.61l16.5 8.5a.5.5 0 010 .9l-16.5 8.5a.5.5 0 01-.67-.61L6 12zm0 0h6"/></svg>
+                            </button>
+                        </form>
+                        <div style="margin-top: 6px; font-size: 0.65rem; color: rgba(255,255,255,0.2);">Tu écris en tant que <span :style="'color:'+pseudoColor(pseudo)+';font-weight:600;'" x-text="pseudo"></span> · <a href="#" @click.prevent="changePseudo()" style="color: rgba(255,255,255,0.35); text-decoration: underline;">changer</a></div>
+                    </template>
                 </div>
             </div>
         </aside>
@@ -114,5 +150,95 @@
     }
 </style>
 @endpush
+
+<script>
+window.liveChat = function (sessionId, isLive) {
+    return {
+        sessionId, isLive,
+        messages: [],
+        pseudo: localStorage.getItem('live_pseudo') || '',
+        pseudoSet: !!localStorage.getItem('live_pseudo'),
+        draft: '',
+        sending: false,
+        seen: new Set(),
+
+        async init() {
+            await this.loadHistory();
+            this.subscribe();
+        },
+
+        async loadHistory() {
+            try {
+                const res  = await fetch(`/direct/${this.sessionId}/chat`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                const json = await res.json();
+                (json.data || []).forEach(m => this.pushMessage(m, false));
+                this.scrollDown();
+            } catch (e) { /* silencieux */ }
+        },
+
+        subscribe() {
+            if (window.Echo) {
+                window.Echo.channel('live.' + this.sessionId)
+                    .listen('.chat.message', (m) => this.pushMessage(m));
+            } else if (this.isLive) {
+                // Fallback sans Pusher : rafraîchissement périodique
+                setInterval(() => this.loadHistory(), 3500);
+            }
+        },
+
+        pushMessage(m, scroll = true) {
+            if (this.seen.has(m.id)) return;
+            this.seen.add(m.id);
+            this.messages.push(m);
+            if (this.messages.length > 250) { this.messages.shift(); }
+            if (scroll) this.scrollDown();
+        },
+
+        scrollDown() {
+            this.$nextTick(() => { const b = this.$refs.box; if (b) b.scrollTop = b.scrollHeight; });
+        },
+
+        savePseudo() {
+            const p = (this.pseudo || '').trim();
+            if (p.length < 2) return;
+            localStorage.setItem('live_pseudo', p);
+            this.pseudo = p;
+            this.pseudoSet = true;
+        },
+
+        changePseudo() {
+            this.pseudoSet = false;
+        },
+
+        async send() {
+            const msg = (this.draft || '').trim();
+            if (!msg || this.sending) return;
+            this.sending = true;
+            try {
+                const res = await fetch(`/direct/${this.sessionId}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ pseudo: this.pseudo, message: msg }),
+                });
+                const json = await res.json();
+                if (json.success) { this.draft = ''; this.pushMessage(json.data); }
+                else { alert(json.message || 'Message refusé.'); }
+            } catch (e) { alert('Problème réseau, réessaie.'); }
+            finally { this.sending = false; }
+        },
+
+        pseudoColor(name) {
+            let h = 0;
+            for (let i = 0; i < (name || '').length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+            const palette = ['#f59e0b','#ef4444','#3b82f6','#10b981','#a855f7','#ec4899','#06b6d4','#f97316','#84cc16'];
+            return palette[Math.abs(h) % palette.length];
+        },
+    };
+};
+</script>
 
 </x-public-layout>

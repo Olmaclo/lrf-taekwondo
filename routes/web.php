@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DrawController;
@@ -34,6 +35,11 @@ Route::post('/webhook/deploy', [\App\Http\Controllers\DeployController::class, '
 // ── Direct / Live (pages publiques) ──────────────────────────────────────────
 Route::get('/direct',                [PublicController::class, 'lives'])->name('public.lives');
 Route::get('/direct/{liveSession}',  [PublicController::class, 'live'])->name('public.live');
+
+// ── Chat du direct (public, anonyme avec pseudo) ──────────────────────────────
+Route::get('/direct/{liveSession}/chat',  [ChatController::class, 'history'])->name('public.live.chat');
+Route::post('/direct/{liveSession}/chat', [ChatController::class, 'send'])
+    ->middleware('throttle:40,1')->name('public.live.chat.send');
 
 // ── Public draw partial routes (AJAX — no auth required) ──────────────────────
 Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
