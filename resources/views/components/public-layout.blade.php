@@ -108,6 +108,10 @@
         .nav-link:hover { color: #fff; }
         .nav-link:hover::after, .nav-link.active::after { left: 14px; right: 14px; }
         .nav-link.active { color: #fff; }
+        .nav-live { color: #ef4444 !important; display: inline-flex; align-items: center; }
+        .nav-live::after { display: none !important; }
+        .nav-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 7px; animation: navLivePulse 1.5s infinite; }
+        @keyframes navLivePulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); } 70% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
 
         .nav-cta { display: inline-flex; align-items: center; gap: 8px; background: #f59e0b; color: #000; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 22px; border-radius: 6px; text-decoration: none; transition: background 0.2s, box-shadow 0.2s; clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%); }
         .nav-cta:hover { background: #fbbf24; box-shadow: 0 0 24px rgba(245,158,11,0.35); }
@@ -155,9 +159,11 @@
 
         {{-- Desktop nav --}}
         @php
+            $navActiveLive = \App\Models\LiveSession::where('status', 'live')->latest('started_at')->first();
             $navLinks = [
                 ['route' => 'public.home',     'label' => 'Accueil'],
                 ['route' => 'public.events',   'label' => 'Événements'],
+                ['route' => 'public.lives',    'label' => 'Direct', 'live' => true],
                 ['route' => 'public.rankings', 'label' => 'Classements'],
                 ['route' => 'public.gallery',  'label' => 'Galerie'],
                 ['route' => 'public.blog',     'label' => 'Actualités'],
@@ -167,10 +173,16 @@
         @endphp
         <nav style="display: none; align-items: center; gap: 4px;" id="desktop-nav">
             @foreach($navLinks as $link)
-            <a href="{{ route($link['route']) }}"
-               class="nav-link {{ request()->routeIs($link['route']) ? 'active' : '' }}">
-                {{ $link['label'] }}
-            </a>
+                @if(($link['live'] ?? false) && $navActiveLive)
+                <a href="{{ route('public.live', $navActiveLive) }}" class="nav-link nav-live" title="En direct maintenant">
+                    <span class="nav-live-dot"></span>{{ $link['label'] }}
+                </a>
+                @else
+                <a href="{{ route($link['route']) }}"
+                   class="nav-link {{ request()->routeIs($link['route']) ? 'active' : '' }}">
+                    {{ $link['label'] }}
+                </a>
+                @endif
             @endforeach
         </nav>
 
@@ -205,10 +217,16 @@
     <div id="mobile-menu">
         <div style="max-width: 1280px; margin: 0 auto; padding: 0 2.5rem 1.5rem;">
             @foreach($navLinks as $link)
-            <a href="{{ route($link['route']) }}"
-               class="mobile-nav-link {{ request()->routeIs($link['route']) ? 'active-m' : '' }}">
-                {{ $link['label'] }}
-            </a>
+                @if(($link['live'] ?? false) && $navActiveLive)
+                <a href="{{ route('public.live', $navActiveLive) }}" class="mobile-nav-link" style="color:#ef4444;">
+                    {{ $link['label'] }} <span class="nav-live-dot" style="margin-left:6px;"></span>
+                </a>
+                @else
+                <a href="{{ route($link['route']) }}"
+                   class="mobile-nav-link {{ request()->routeIs($link['route']) ? 'active-m' : '' }}">
+                    {{ $link['label'] }}
+                </a>
+                @endif
             @endforeach
             <div style="padding-top: 1.25rem; display: flex; flex-direction: column; gap: 10px;">
                 <a href="{{ route('register') }}" class="nav-cta" style="justify-content: center; clip-path: none; border-radius: 8px;">

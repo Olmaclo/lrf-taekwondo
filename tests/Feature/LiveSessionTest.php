@@ -118,3 +118,24 @@ it('shows the live banner on the event page when a live is running', function ()
         ->assertSee('Combat en cours')
         ->assertSee('Regarder maintenant');
 });
+
+// ── Page publique « Directs » (liste) ───────────────────────────────────────────
+
+it('lists current lives and replays on the public directs page', function () {
+    $event = Event::factory()->create();
+    LiveSession::factory()->live()->create(['event_id' => $event->id, 'title' => 'Live Now']);
+    LiveSession::factory()->ended()->create(['event_id' => $event->id, 'title' => 'Old Replay']);
+
+    $this->get('/direct')
+        ->assertOk()
+        ->assertSee('Live Now')
+        ->assertSee('Old Replay')
+        ->assertSee('En direct maintenant');
+});
+
+it('shows the red live link in the public nav when a live is active', function () {
+    $event = Event::factory()->create();
+    LiveSession::factory()->live()->create(['event_id' => $event->id]);
+
+    $this->get('/')->assertOk()->assertSee('nav-live');
+});

@@ -108,6 +108,17 @@ class PublicController extends Controller
         return view('public.event-detail', compact('event', 'categories', 'rankings', 'photos', 'liveSession'));
     }
 
+    public function lives(): View
+    {
+        $liveNow = LiveSession::with('event:id,name,slug')
+            ->live()->latest('started_at')->get();
+
+        $replays = LiveSession::with('event:id,name,slug')
+            ->where('status', 'ended')->latest('ended_at')->limit(24)->get();
+
+        return view('public.lives', compact('liveNow', 'replays'));
+    }
+
     public function live(LiveSession $liveSession): View
     {
         // Consultable seulement si en cours (direct) ou terminé (replay)

@@ -31,8 +31,9 @@ Route::post('/webhook/deploy', [\App\Http\Controllers\DeployController::class, '
     ->middleware('throttle:10,1')
     ->name('webhook.deploy');
 
-// ── Direct / Live (page publique de visionnage) ──────────────────────────────
-Route::get('/direct/{liveSession}', [PublicController::class, 'live'])->name('public.live');
+// ── Direct / Live (pages publiques) ──────────────────────────────────────────
+Route::get('/direct',                [PublicController::class, 'lives'])->name('public.lives');
+Route::get('/direct/{liveSession}',  [PublicController::class, 'live'])->name('public.live');
 
 // ── Public draw partial routes (AJAX — no auth required) ──────────────────────
 Route::get('/tirages/{draw}/partial', [DrawController::class, 'bracketPartial'])->name('draws.bracket-partial');
