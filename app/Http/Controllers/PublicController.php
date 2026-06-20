@@ -126,7 +126,9 @@ class PublicController extends Controller
 
         $liveSession->load('event');
 
-        return view('public.live', compact('liveSession'));
+        $canModerate = Auth::check() && Auth::user()->canModerateLive();
+
+        return view('public.live', compact('liveSession', 'canModerate'));
     }
 
     public function gallery(Request $request): View

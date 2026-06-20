@@ -82,7 +82,7 @@
 
         {{-- Panneau latéral : chat en direct --}}
         <aside style="display: flex; flex-direction: column;"
-               x-data="liveChat({{ $liveSession->id }}, {{ $isLive ? 'true' : 'false' }})" x-init="init()">
+               x-data="liveChat({{ $liveSession->id }}, {{ $isLive ? 'true' : 'false' }}, {{ ($canModerate ?? false) ? 'true' : 'false' }})" x-init="init()">
             <div style="background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; overflow: hidden; height: 100%; min-height: 480px; max-height: 72vh; display: flex; flex-direction: column;">
 
                 {{-- Header --}}
@@ -97,10 +97,22 @@
                         <div style="color: rgba(255,255,255,0.22); font-size: 0.8rem; text-align: center; margin: auto;">Sois le premier à écrire ! 👋</div>
                     </template>
                     <template x-for="m in messages" :key="m.id">
-                        <div style="font-size: 0.85rem; line-height: 1.4;">
+                        <div class="chat-msg" style="font-size: 0.85rem; line-height: 1.4; position: relative; padding-right: 2px;">
                             <span :style="'color:' + pseudoColor(m.pseudo) + '; font-weight: 700;'" x-text="m.pseudo"></span>
                             <span style="color: rgba(255,255,255,0.2); font-size: 0.62rem; margin-left: 6px;" x-text="m.time"></span>
                             <div style="color: rgba(255,255,255,0.82); word-break: break-word; margin-top: 1px;" x-text="m.message"></div>
+                            <template x-if="canModerate">
+                                <div class="chat-mod-tools">
+                                    <button @click="deleteMessage(m.id)" title="Supprimer ce message"
+                                            style="background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.6); width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display:flex; align-items:center; justify-content:center;">
+                                        <svg style="width:13px;height:13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16"/></svg>
+                                    </button>
+                                    <button @click="banMessage(m.id, m.pseudo)" title="Bannir l'auteur"
+                                            style="background: rgba(239,68,68,0.15); border: none; color: #f87171; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display:flex; align-items:center; justify-content:center;">
+                                        <svg style="width:13px;height:13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </template>
                 </div>
@@ -148,13 +160,15 @@
     @media (max-width: 960px) {
         #live-grid { grid-template-columns: 1fr !important; }
     }
+    .chat-mod-tools { position: absolute; top: 0; right: 0; display: none; gap: 4px; background: rgba(10,10,10,0.85); padding: 2px; border-radius: 7px; }
+    .chat-msg:hover .chat-mod-tools { display: flex; }
 </style>
 @endpush
 
 <script>
-window.liveChat = function (sessionId, isLive) {
+window.liveChat = function (sessionId, isLive, canModerate) {
     return {
-        sessionId, isLive,
+        sessionId, isLive, canModerate,
         messages: [],
         pseudo: localStorage.getItem('live_pseudo') || '',
         pseudoSet: !!localStorage.getItem('live_pseudo'),
@@ -178,12 +192,38 @@ window.liveChat = function (sessionId, isLive) {
 
         subscribe() {
             if (window.Echo) {
-                window.Echo.channel('live.' + this.sessionId)
-                    .listen('.chat.message', (m) => this.pushMessage(m));
+                const ch = window.Echo.channel('live.' + this.sessionId);
+                ch.listen('.chat.message', (m) => this.pushMessage(m));
+                ch.listen('.chat.deleted', (e) => this.removeMessages(e.ids || []));
             } else if (this.isLive) {
                 // Fallback sans Pusher : rafraîchissement périodique
                 setInterval(() => this.loadHistory(), 3500);
             }
+        },
+
+        removeMessages(ids) {
+            const set = new Set(ids);
+            this.messages = this.messages.filter(m => !set.has(m.id));
+        },
+
+        modHeaders() {
+            return { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content };
+        },
+
+        async deleteMessage(id) {
+            try {
+                await fetch(`/direct/${this.sessionId}/messages/${id}/delete`, { method: 'POST', headers: this.modHeaders() });
+                this.removeMessages([id]);
+            } catch (e) {}
+        },
+
+        async banMessage(id, pseudo) {
+            if (!confirm(`Bannir « ${pseudo} » ? Tous ses messages seront supprimés.`)) return;
+            try {
+                const res  = await fetch(`/direct/${this.sessionId}/messages/${id}/ban`, { method: 'POST', headers: this.modHeaders() });
+                const json = await res.json();
+                if (!json.success) alert(json.message || 'Action refusée.');
+            } catch (e) {}
         },
 
         pushMessage(m, scroll = true) {

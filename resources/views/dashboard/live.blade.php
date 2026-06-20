@@ -11,11 +11,50 @@
             </h1>
             <p class="text-sm text-zinc-400 mt-1">Lance et gère les directs YouTube des événements.</p>
         </div>
-        <button @click="showForm = !showForm"
-                class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm px-4 py-2.5 rounded-lg transition">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Nouveau direct
-        </button>
+        <div class="flex items-center gap-2">
+            <button @click="openMods()"
+                    class="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition border border-zinc-700">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Modérateurs
+            </button>
+            <button @click="showForm = !showForm"
+                    class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm px-4 py-2.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                Nouveau direct
+            </button>
+        </div>
+    </div>
+
+    {{-- ── Modérateurs du chat ───────────────────────────────────────────────── --}}
+    <div x-show="showMods" x-collapse class="bg-zinc-900/70 border border-zinc-800 rounded-xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-white font-semibold text-sm">Modérateurs du chat</h2>
+            <span class="text-xs text-zinc-500">Qui peut supprimer/bannir dans les directs</span>
+        </div>
+        <div class="space-y-1.5 max-h-80 overflow-y-auto">
+            <template x-if="moderators.length === 0">
+                <div class="text-sm text-zinc-500 py-3 text-center">Chargement…</div>
+            </template>
+            <template x-for="u in moderators" :key="u.id">
+                <div class="flex items-center justify-between bg-zinc-800/40 rounded-lg px-3 py-2">
+                    <div class="min-w-0">
+                        <div class="text-sm text-white truncate" x-text="u.name"></div>
+                        <div class="text-xs text-zinc-500 truncate" x-text="u.email"></div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <template x-if="u.is_admin">
+                            <span class="text-[11px] text-amber-400 border border-amber-500/30 rounded-full px-2 py-0.5">Admin</span>
+                        </template>
+                        <template x-if="!u.is_admin">
+                            <button @click="toggleMod(u)"
+                                    class="text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                                    :class="u.is_moderator ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'"
+                                    x-text="u.is_moderator ? '✓ Modérateur' : 'Désigner'"></button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
     </div>
 
     {{-- ── Formulaire de création ───────────────────────────────────────────── --}}
@@ -155,6 +194,22 @@ function liveManager() {
         async remove(id) {
             if (!confirm('Supprimer ce direct ?')) return;
             try { await req('DELETE', `/api/live/${id}`); await this.load(); } catch (e) { alert(e.message); }
+        },
+
+        showMods: false,
+        moderators: [],
+        async openMods() {
+            this.showMods = !this.showMods;
+            if (this.showMods && this.moderators.length === 0) {
+                try { this.moderators = (await req('GET', '/api/live/moderators')).data ?? []; }
+                catch (e) { alert(e.message); }
+            }
+        },
+        async toggleMod(u) {
+            try {
+                const res = await req('POST', `/api/live/moderators/${u.id}/toggle`);
+                u.is_moderator = res.is_moderator;
+            } catch (e) { alert(e.message); }
         },
     };
 }

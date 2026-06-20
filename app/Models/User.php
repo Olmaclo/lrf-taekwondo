@@ -101,4 +101,13 @@ class User extends Authenticatable
     {
         return $this->hasAnyRole(['admin', 'financial']);
     }
+
+    /**
+     * Peut modérer les chats des directs : les admins toujours, et tout compte
+     * à qui un admin (ou un modérateur) a donné la permission `moderate-live`.
+     */
+    public function canModerateLive(): bool
+    {
+        return $this->isAdmin() || $this->can('moderate-live');
+    }
 }

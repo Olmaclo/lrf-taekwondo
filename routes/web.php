@@ -15,6 +15,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\LiveSessionController;
+use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
@@ -146,6 +147,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/{liveSession}/stop',  [LiveSessionController::class, 'stop'])->name('stop');
         Route::delete('/{liveSession}', [LiveSessionController::class, 'destroy'])->name('destroy');
     });
+
+    // ── Modération du chat (modérateurs habilités) ──────────────────────────────
+    Route::post('/direct/{liveSession}/messages/{message}/delete', [ModerationController::class, 'deleteMessage'])->name('live.mod.delete');
+    Route::post('/direct/{liveSession}/messages/{message}/ban',    [ModerationController::class, 'banAuthor'])->name('live.mod.ban');
+    Route::get('/api/live/moderators',                [ModerationController::class, 'moderators'])->name('live.mod.list');
+    Route::post('/api/live/moderators/{user}/toggle', [ModerationController::class, 'toggleModerator'])->name('live.mod.toggle');
 
     // ── Coaches ───────────────────────────────────────────────────────────────
     Route::prefix('api/coaches')->name('api.coaches.')->group(function () {
