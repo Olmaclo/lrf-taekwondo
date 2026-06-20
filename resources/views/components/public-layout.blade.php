@@ -48,6 +48,29 @@
     <noscript>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
     </noscript>
+
+    {{-- Données structurées Schema.org : identité de l'organisation (toutes les pages) --}}
+    <script type="application/ld+json">
+    {!! json_encode([
+        '@context'      => 'https://schema.org',
+        '@type'         => 'SportsOrganization',
+        'name'          => 'Ligue Régionale de Taekwondo de Fatick',
+        'alternateName' => 'LRF Taekwondo',
+        'url'           => url('/'),
+        'logo'          => asset('images/logo.png'),
+        'image'         => asset('images/logo.png'),
+        'sport'         => 'Taekwondo',
+        'email'         => 'contact@lrftaekwondo.com',
+        'telephone'     => '+221773056998',
+        'address'       => [
+            '@type'           => 'PostalAddress',
+            'addressLocality' => 'Fatick',
+            'addressRegion'   => 'Fatick',
+            'addressCountry'  => 'SN',
+        ],
+        'areaServed'    => 'Région de Fatick, Sénégal',
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
     @stack('head')
     @php
         $viteManifestPath = public_path('build/manifest.json');

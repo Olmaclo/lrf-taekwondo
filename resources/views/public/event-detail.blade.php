@@ -5,6 +5,41 @@
     type="article"
 >
 
+@push('head')
+{{-- Données structurées Schema.org : compétition (rich snippets Google) --}}
+<script type="application/ld+json">
+{!! json_encode(array_filter([
+    '@context'            => 'https://schema.org',
+    '@type'               => 'SportsEvent',
+    'name'                => $event->name,
+    'sport'               => 'Taekwondo',
+    'startDate'           => optional($event->start_date)->toDateString(),
+    'endDate'             => optional($event->end_date ?? $event->start_date)->toDateString(),
+    'eventStatus'         => $event->status === 'cancelled'
+                                ? 'https://schema.org/EventCancelled'
+                                : 'https://schema.org/EventScheduled',
+    'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+    'description'         => $event->description ? Str::limit(strip_tags($event->description), 300) : null,
+    'image'               => $event->cover_url,
+    'url'                 => url()->current(),
+    'location'            => [
+        '@type'   => 'Place',
+        'name'    => $event->location ?: 'Fatick, Sénégal',
+        'address' => [
+            '@type'           => 'PostalAddress',
+            'addressLocality' => $event->location ?: 'Fatick',
+            'addressCountry'  => 'SN',
+        ],
+    ],
+    'organizer'           => [
+        '@type' => 'SportsOrganization',
+        'name'  => 'Ligue Régionale de Taekwondo de Fatick',
+        'url'   => url('/'),
+    ],
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endpush
+
 <div style="background: #000; min-height: 100vh; padding-top: 80px;">
 
     {{-- Hero --}}

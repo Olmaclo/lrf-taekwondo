@@ -20,8 +20,9 @@ class SitemapController extends Controller
 
         $staticPages = [
             ['url' => route('public.home'),    'priority' => '1.0',  'freq' => 'weekly'],
-            ['url' => route('public.events'),  'priority' => '0.9',  'freq' => 'daily'],
-            ['url' => route('public.gallery'), 'priority' => '0.7',  'freq' => 'weekly'],
+            ['url' => route('public.events'),    'priority' => '0.9',  'freq' => 'daily'],
+            ['url' => route('public.rankings'),  'priority' => '0.8',  'freq' => 'weekly'],
+            ['url' => route('public.gallery'),   'priority' => '0.7',  'freq' => 'weekly'],
             ['url' => route('public.blog'),    'priority' => '0.8',  'freq' => 'weekly'],
             ['url' => route('public.verify'),  'priority' => '0.6',  'freq' => 'monthly'],
             ['url' => route('public.contact'), 'priority' => '0.5',  'freq' => 'monthly'],
