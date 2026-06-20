@@ -40,7 +40,11 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Stockage direct dans public/storage (vrai dossier, pas de symlink) :
+            // l'hébergement mutualisé Hostinger n'autorise pas symlink() côté web,
+            // et le DocRoot réécrit déjà /storage vers public/. Les uploads sont
+            // donc servis statiquement sans dépendre de `storage:link`.
+            'root' => public_path('storage'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
