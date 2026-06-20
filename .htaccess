@@ -1,0 +1,14 @@
+# Pont d'hébergement (Hostinger) — le DocRoot pointe sur la racine du projet.
+# Toutes les requêtes sont réécrites vers le dossier public/ (front controller Laravel).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Évite la boucle si la requête cible déjà public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Empêche l'accès direct aux fichiers sensibles
+<FilesMatch "^\.env|composer\.(json|lock)$">
+    Require all denied
+</FilesMatch>
