@@ -20,6 +20,6 @@ class NewCoachRegisteredMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(markdown: 'emails.new-coach-registered');
+        return new Content(view: 'emails.new-coach-registered');
     }
 }

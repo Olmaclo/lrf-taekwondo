@@ -20,6 +20,6 @@ class AthleteValidatedMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(markdown: 'emails.athlete-validated');
+        return new Content(view: 'emails.athlete-validated');
     }
 }

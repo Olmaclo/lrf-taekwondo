@@ -2,24 +2,24 @@
 
 namespace App\Mail;
 
-use App\Models\Athlete;
+use App\Models\User;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-class AthleteRejectedMail extends Mailable
+class CoachRejectedMail extends Mailable
 {
-    public function __construct(public Athlete $athlete) {}
+    public function __construct(public User $coach) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Inscription refusée — {$this->athlete->full_name}",
+            subject: 'Votre demande de compte coach — LRF Taekwondo',
         );
     }
 
     public function content(): Content
     {
-        return new Content(view: 'emails.athlete-rejected');
+        return new Content(view: 'emails.coach-rejected');
     }
 }
