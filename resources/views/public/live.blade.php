@@ -1,6 +1,7 @@
 <x-public-layout
     :title="$liveSession->title"
     :description="'Direct — ' . $liveSession->title . ' · ' . ($liveSession->event?->name ?? 'Ligue de Fatick')"
+    :image="'https://img.youtube.com/vi/' . $liveSession->youtube_video_id . '/hqdefault.jpg'"
     type="video.other"
 >
 
@@ -158,12 +159,32 @@
                         @endif
                     </div>
                 </div>
-                <a href="{{ $liveSession->watch_url }}" target="_blank" rel="noopener"
-                   style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 600; padding: 9px 16px; border-radius: 8px; text-decoration: none; transition: all 0.2s;"
-                   onmouseover="this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.color='rgba(255,255,255,0.7)'; this.style.borderColor='rgba(255,255,255,0.1)'">
-                    <svg style="width: 15px; height: 15px; color: #ff0000;" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                    YouTube
-                </a>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {{-- Partager --}}
+                    <div x-data="liveShare(@js($liveSession->title))" style="position: relative;">
+                        <button @click="toggle()"
+                                style="display: inline-flex; align-items: center; gap: 7px; background: #f59e0b; color: #000; font-size: 0.78rem; font-weight: 700; padding: 9px 16px; border-radius: 8px; border: none; cursor: pointer; transition: background 0.2s;"
+                                onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">
+                            <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/></svg>
+                            Partager
+                        </button>
+                        <div x-show="open" x-cloak @click.outside="open = false"
+                             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                             style="position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 6px; min-width: 195px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+                            <button @click="whatsapp()" class="share-item"><span style="color:#25D366; font-size:1rem;">●</span> WhatsApp</button>
+                            <button @click="facebook()" class="share-item"><span style="color:#1877F2; font-size:1rem;">●</span> Facebook</button>
+                            <button @click="x()" class="share-item"><span style="color:#fff; font-weight:700;">𝕏</span> X (Twitter)</button>
+                            <button @click="copy()" class="share-item"><span style="color:#f59e0b;">🔗</span> <span x-text="copied ? 'Lien copié !' : 'Copier le lien'"></span></button>
+                        </div>
+                    </div>
+                    {{-- YouTube --}}
+                    <a href="{{ $liveSession->watch_url }}" target="_blank" rel="noopener"
+                       style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 600; padding: 9px 16px; border-radius: 8px; text-decoration: none; transition: all 0.2s;"
+                       onmouseover="this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.color='rgba(255,255,255,0.7)'; this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <svg style="width: 15px; height: 15px; color: #ff0000;" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        YouTube
+                    </a>
+                </div>
             </div>
 
             @if($liveSession->description)
@@ -258,6 +279,8 @@
         12%  { opacity: 1; transform: translateY(-12px) scale(1.15); }
         100% { transform: translateY(-230px) translateX(var(--drift, 0)) scale(0.85); opacity: 0; }
     }
+    .share-item { width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; background: none; border: none; color: rgba(255,255,255,0.85); font-size: 0.83rem; padding: 9px 11px; border-radius: 8px; cursor: pointer; }
+    .share-item:hover { background: rgba(255,255,255,0.06); }
 </style>
 @endpush
 
@@ -482,6 +505,40 @@ window.livePoll = function (sessionId, isLive, canModerate) {
         percent(count) {
             const t = this.poll ? this.poll.total : 0;
             return t > 0 ? Math.round((count / t) * 100) : 0;
+        },
+    };
+};
+
+window.liveShare = function (title) {
+    return {
+        open: false,
+        copied: false,
+        get url() { return window.location.href; },
+        get text() { return '🔴 ' + title + ' — en direct sur la Ligue de Fatick !'; },
+
+        async toggle() {
+            // Menu de partage natif du téléphone si disponible
+            if (navigator.share) {
+                try { await navigator.share({ title: title, text: this.text, url: this.url }); return; }
+                catch (e) { if (e && e.name === 'AbortError') return; }
+            }
+            this.open = !this.open;
+        },
+
+        whatsapp() { window.open('https://wa.me/?text=' + encodeURIComponent(this.text + ' ' + this.url), '_blank', 'noopener'); this.open = false; },
+        facebook() { window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(this.url), '_blank', 'noopener'); this.open = false; },
+        x()        { window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.text) + '&url=' + encodeURIComponent(this.url), '_blank', 'noopener'); this.open = false; },
+
+        async copy() {
+            try { await navigator.clipboard.writeText(this.url); }
+            catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = this.url; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch (_) {}
+                ta.remove();
+            }
+            this.copied = true;
+            setTimeout(() => this.copied = false, 2000);
         },
     };
 };
